@@ -13,3 +13,4 @@ Web前端基础，前端面试，html、CSS、JavaScript、TypeScript、Vue、Re
 
 ## JavaScript
 - [JavaScript基础](./JavaScript/JavaScript%E5%9F%BA%E7%A1%80.md)
+- [深拷贝与浅拷贝](./JavaScript/%E6%B7%B1%E6%8B%B7%E8%B4%9D%E4%B8%8E%E6%B5%85%E6%8B%B7%E8%B4%9D.md)
