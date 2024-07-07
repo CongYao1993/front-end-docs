@@ -30,6 +30,7 @@ export default defineUserConfig({
     lang: 'zh-CN',
     title: '前端入门和面试大全',
     description: 'Web前端基础，前端面试，html、CSS、JavaScript、TypeScript、Vue、React、Node.js、webpack、计算机网络、浏览器',
+    base: '/Front-End-Introduction-Interview/',
     theme: defaultTheme({
         navbar: [
             {
