@@ -12,7 +12,7 @@ const sidebar = res
         const curDir = resolve(__dirname, '..', item.name)
         const files = readdirSync(curDir, { withFileTypes: true });
         const children = files
-            .filter((file) => file.isFile() && file.name.endsWith('.md'))
+            .filter((file) => file.isFile() && file.name.endsWith('.md') && file.name!=='README.md')
             .map(file => {
                 return {
                     text: file.name.split('.md')[0],
@@ -21,6 +21,7 @@ const sidebar = res
             })
         return {
             text: item.name,
+            link: `/${item.name}/README.md`,
             prefix: `/${item.name}/`,
             children
         }
