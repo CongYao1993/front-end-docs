@@ -50,7 +50,28 @@ function sayColor() {
 sayColor();
 ```
 
-### 2.2 函数作为对象里的方法被调用时
+### 2.2 嵌套函数的 this
+
+this 关键字不具有变量那样的作用域机制，除了箭头函数，内部函数不会继承外部函数的 this 值。
+
+如果内部函数被当作函数来调用，它的 this 值是全局对象（非严格模式）或 undefined（严格模式）。
+
+```javascript
+function fn() {
+  console.log("real", this); // {a: 100}
+  const f1 = function () {
+    console.log("function", this); // window
+  };
+  f1();
+  const f2 = () => {
+    console.log("=>", this); // {a: 100}
+  };
+  f2();
+}
+fn.call({ a: 100 });
+```
+
+### 2.3 函数作为对象里的方法被调用时
 
 函数作为对象里的方法被调用时，this 被设置为调用该函数的对象。
 
@@ -68,7 +89,7 @@ obj.sayColor = sayColor;
 obj.sayColor();
 ```
 
-### 2.3 当函数作为构造函数
+### 2.4 当函数作为构造函数
 
 当函数作为构造函数，使用 new 关键字调用时，this 被绑定到构造的新对象上。
 
@@ -81,7 +102,7 @@ var obj = new f();
 console.log(obj.a); // 3
 ```
 
-### 2.4 当函数被用作 DOM 事件处理函数
+### 2.5 当函数被用作 DOM 事件处理函数
 
 当函数被用作 DOM 事件处理函数时，this 指向当前监听事件的 DOM 元素 e.currentTarget。
 
@@ -96,7 +117,7 @@ function click(e) {
 
 ## 3. 箭头函数的 this
 
-箭头函数的 this 是`声明时所在的执行上下文`的 this。在函数中 this 指向外层第一个普通函数的 this，在全局代码中 this 被设置为全局对象。
+箭头函数的 this 是`自身定义时所在的执行上下文的 this`。在函数中 this 指向外层第一个普通函数的 this，在全局代码中 this 被设置为全局对象。
 
 箭头函数没有 prototype 原型，所以箭头函数本身没有 this，当然也就不能用 call()、apply()、bind()这些方法去改变 this 的指向。
 
@@ -309,4 +330,77 @@ Function.prototype.myBind = function (...args) {
     );
   };
 };
+```
+
+## 7. 代码题
+
+普通函数的 this、箭头函数的 this、嵌套函数的 this
+
+```javascript
+// window有一个name属性，默认为空
+const obj = {
+  name: "yc",
+  getName1() {
+    console.log(this.name);
+  },
+  getName2: function () {
+    console.log(this.name);
+  },
+  getName3: () => {
+    console.log(this.name);
+  },
+  getName4() {
+    return function () {
+      console.log(this.name);
+    };
+  },
+  getName5() {
+    return () => {
+      console.log(this.name);
+    };
+  },
+};
+
+obj.getName1(); // yc
+obj.getName2(); // yc
+obj.getName3(); // 空
+obj.getName4()(); // 空
+obj.getName5()(); // yc
+
+getName = obj.getName4();
+getName(); // 空
+
+getName = obj.getName5();
+getName(); // yc
+
+obj.getName3.bind({ name: "yc" });
+obj.getName3(); // 空
+```
+
+```javascript
+function fn() {
+  console.log("real", this); // {a: 100}
+  const f1 = function () {
+    console.log("function", this); // window
+  };
+  f1();
+  const f2 = () => {
+    console.log("=>", this); // {a: 100}
+  };
+  f2();
+}
+fn.call({ a: 100 });
+```
+
+```javascript
+let num = 11;
+function fn() {
+  this.num = 22;
+  console.log(num); // 11
+  let fn2 = () => {
+    console.log(this.num);
+  }; // 22
+  fn2();
+}
+new fn();
 ```
