@@ -13,7 +13,21 @@
 
 - 什么是闭包，闭包的应用场景
 
+[this 和手写 call、apply、bind](./this和手写call、apply、bind.md)
+
+- this 指向
+- 手写 call / apply
+- 手写 bind
+
 [原型与原型链](./原型与原型链.md)
 
 - 什么是原型与原型链
+- 手写 new
 - 如何实现继承
+- 手写 instanceof
+
+[事件循环机制 EventLoop](./事件循环机制EventLoop.md)
+
+- 什么是宏任务和微任务，什么是事件循环
+
+[异步和 Promise](./异步和Promise.md)
