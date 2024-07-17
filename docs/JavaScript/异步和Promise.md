@@ -294,4 +294,301 @@ Promise.any() 方法同样是将多个 Promise 实例，包装成一个新的 Pr
 
 ## 4. 手写题
 
-### 4.1 手写请求重试 retry
+### 4.1 一次最多发送 n 个请求
+
+假如有 100 个请求，限制同时并发 10 个请求。
+
+```javascript
+function limitReqCnt(urls, n, fn) {
+  const res = [];
+  let index;
+  let cnt = 0;
+  return new Promise((resolve, reject) => {
+    function send(urls, i) {
+      fn(urls[i])
+        .then((val) => {
+          res[i] = val;
+        })
+        .catch((err) => {
+          res[i] = err;
+        })
+        .finally(() => {
+          if (index < urls.length) {
+            send(urls, index++);
+          }
+          cnt++;
+          if (cnt >= urls.length) {
+            resolve(res);
+          }
+        });
+    }
+    for (index = 0; i < n; i++) {
+      send(urls, i);
+    }
+  });
+}
+```
+
+### 4.2 手写请求重试 retry
+
+```javascript
+/*
+ * @param {function} fn - 方法名
+ * @param {number} times - 重发的次数
+ */
+function retry(fn, times = 5) {
+  return new Promise((resolve, reject) => {
+    function func() {
+      Promise.resolve(fn())
+        .then((res) => {
+          resolve(res);
+        })
+        .catch((err) => {
+          // 接口失败后，判断剩余次数不为0时，继续重发
+          if (times !== 0) {
+            func();
+            times--;
+          } else {
+            reject(err);
+          }
+        });
+    }
+    func();
+  });
+}
+```
+
+### 4.3 红绿灯
+
+使用 Promise 实现红绿灯效果，循环执行红灯亮 3 秒、绿灯亮 2 秒、黄灯亮 1 秒。
+
+```javascript
+function red() {
+  console.log("red");
+}
+function green() {
+  console.log("green");
+}
+function yellow() {
+  console.log("yellow");
+}
+
+function light(timer, cb) {
+  return new Promise(function (resolve, reject) {
+    setTimeout(function () {
+      cb();
+      resolve();
+    }, timer);
+  });
+}
+
+function step() {
+  light(3000, red)
+    .then(function () {
+      return light(2000, green);
+    })
+    .then(function () {
+      return light(1000, yellow);
+    })
+    .then(function () {
+      step();
+    });
+}
+
+step();
+```
+
+## 5. Generator
+
+- generator 函数跟普通函数在写法上的区别就是，多了一个星号\*
+- 只有在 generator 函数中才能使用 yield，相当于 generator 函数执行的中途暂停点
+- generator 函数是不会自动执行的，每一次调用它的 next 方法，会停留在下一个 yield 的位置
+- next 方法的参数表示上一个 yield 表达式的返回值
+
+```javascript
+function* foo(x) {
+  var y = 2 * (yield x + 1);
+  var z = yield y / 3;
+  return x + y + z;
+}
+
+var a = foo(5);
+a.next(); // {value:6, done:false}
+a.next(); // {value:NaN, done:false}
+a.next(); // {value:NaN, done:true}
+
+var b = foo(5);
+b.next(); // { value:6, done:false }
+b.next(12); // { value:8, done:false }
+b.next(13); // { value:42, done:true }
+```
+
+## 6. async / await
+
+- async 函数是 generator（生成器函数）的语法糖
+- async 函数返回的是一个 Promise 对象，有无值看有无 return 值
+- await 关键字只能放在 async 函数内部，await 关键字的作用就是获取 Promise 中返回的 resolve 或者 reject 的值
+- async、await 要结合 try/catch 使用，防止意外的错误
+
+1. async 函数的函数体可以被看作是由 0 个或者多个 await 表达式分割开来的。从第一行代码直到（并包括）第一个 await 表达式都是同步运行的。
+2. 当函数执行的时候，一旦遇到 await 就会先返回，等到异步操作完成，再接着执行函数体内后面的语句。
+3. 在 await 表达式之后的代码可以被认为是存在在链式调用的 then 回调中，多个 await 表达式都将加入链式调用的 then 回调中，返回值将作为最后一个 then 回调的返回值。
+
+```javascript
+async function foo() {
+  return 1;
+}
+
+// 等价于：
+function foo() {
+  return Promise.resolve(1);
+}
+```
+
+```javascript
+async function foo() {
+  await 1;
+}
+
+// 等价于
+function foo() {
+  return Promise.resolve(1).then(() => undefined);
+}
+```
+
+## 7. 代码题
+
+Promise 如果没有 resolve，then 的回调函数就不会执行。
+
+```javascript
+const promise = new Promise((resolve, reject) => {
+  console.log(1);
+  console.log(2);
+});
+promise.then(() => {
+  console.log(3);
+});
+console.log(4);
+
+// 1 2 4
+```
+
+resolve() 函数调用不会阻止其后面的代码执行，之后的代码是同步执行的。
+
+```javascript
+const p = new Promise(function (resolve, reject) {
+  console.log("A");
+
+  resolve("B");
+
+  Promise.resolve().then(() => {
+    console.log("C");
+  });
+});
+
+p.then((param) => {
+  console.log(param);
+});
+// A C B
+```
+
+```javascript
+new Promise((resolve) => {
+  resolve();
+})
+  .then(() => {
+    console.log(1);
+    return new Promise((resolve) => {
+      resolve();
+    }).then(() => {
+      console.log(3);
+    });
+  })
+  .then(() => {
+    console.log(2);
+  });
+// 1 3 2
+```
+
+```javascript
+new Promise((resolve) => {
+  resolve();
+  console.log(1);
+})
+  .then(() => console.log(3))
+  .then(() => console.log(5));
+
+new Promise((resolve) => {
+  resolve();
+  console.log(2);
+})
+  .then(() => console.log(4))
+  .then(() => console.log(6));
+// 1 2 3 4 5 6
+```
+
+```javascript
+new Promise(function (res) {
+  console.log(1);
+  res();
+  Promise.resolve().then(function () {
+    console.log(2);
+  });
+  new Promise(function (res) {
+    res();
+  }).then(function () {
+    console.log(-1);
+  });
+  console.log(0);
+})
+  .then(function () {
+    console.log(3);
+    Promise.resolve().then(function () {
+      console.log(4);
+    });
+  })
+  .then(function () {
+    console.log(5);
+  });
+// 1 0 2 -1 3 4 5
+```
+
+```javascript
+async function async1() {
+  console.log("async1 start");
+  await async2();
+  console.log("async1 end");
+  console.log("async1 end 2");
+}
+
+async function async2() {
+  console.log("async2");
+}
+
+console.log("script start");
+
+setTimeout(function () {
+  console.log("setTimeout");
+}, 0);
+
+async1();
+
+new Promise(function (resolve) {
+  console.log("promise1");
+  resolve();
+}).then(function () {
+  console.log("promise2");
+});
+
+console.log("script end");
+
+// script start
+// async1 start
+// async2
+// promise1
+// script end
+// async1 end
+// async1 end 2
+// promise2
+// setTimeout
+```
