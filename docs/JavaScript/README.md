@@ -31,3 +31,8 @@
 - 什么是宏任务和微任务，什么是事件循环
 
 [异步和 Promise](./异步和Promise.md)
+
+- 什么是 Promise.[all/race/allSettled/any]，手写这几个方法
+- Promise / async 执行顺序题
+
+[深拷贝与浅拷贝](./深拷贝与浅拷贝.md)
