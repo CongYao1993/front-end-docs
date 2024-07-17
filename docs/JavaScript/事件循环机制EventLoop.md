@@ -13,6 +13,7 @@ JavaScript 是单线程，一些高耗时操作会带来线程阻塞问题。为
 | DOM 渲染、DOM 事件（浏览器）    | queueMicrotask                 |
 | script 整体代码                 |                                |
 | requestAnimationFrame（浏览器） |                                |
+| 网络请求、webSocket             |                                |
 
 **任务队列：** 事件循环通过`宏任务队列`和`微任务队列`来保存宏任务和微任务。任务队列符合`先进先出`的特点，即添加任务时，添加至队列尾部，取出任务时，从队列头部取。
 
@@ -61,3 +62,13 @@ Promise.resolve(3).then((res) => {
 // 3 1 2 4
 // 先输出 3 是肯定的，因为是放在微任务里，1 肯定在 4 前面，因为都是宏任务那就按照一般顺序，但是 2 怎么判断位置。
 ```
+
+## 3. setTimeout、setInterval、requestAnimationFrame 的区别
+
+- 引擎层面
+  - setTimeout 属于 JS 引擎 ，存在事件轮询
+  - requestAnimationFrame 属于 GUI 引擎
+  - JS 引擎与 GUI 引擎是互斥的，也就是说 GUI 引擎在渲染时会阻塞 JS 引擎的计算，因为如果在 GUI 渲染的时候，JS 同时又改变了 dom，那么就会造成页面渲染不同步
+- 性能层面
+  - 当页面被隐藏或最小化时，定时器 setTimeout 仍会在后台执行动画任务
+  - 当页面处于未激活的状态下，该页面的屏幕刷新任务会被系统暂停，requestAnimationFrame 也会停止

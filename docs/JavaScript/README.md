@@ -29,6 +29,7 @@
 [事件循环机制 EventLoop](./事件循环机制EventLoop.md)
 
 - 什么是宏任务和微任务，什么是事件循环
+- setTimeout、setInterval、requestAnimationFrame 三者的区别
 
 [异步和 Promise](./异步和Promise.md)
 
@@ -36,3 +37,7 @@
 - Promise / async 执行顺序题
 
 [深拷贝与浅拷贝](./深拷贝与浅拷贝.md)
+
+- 手写深拷贝
+
+[设计模式](./设计模式.md)
