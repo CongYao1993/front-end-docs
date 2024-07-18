@@ -1,4 +1,66 @@
-## 1. Array.prototype.forEach()
+[手写深拷贝](./深拷贝与浅拷贝.md)
+
+[手写 new](./原型与原型链.md#3-new-的实现原理)
+
+[手写 instanceof](./原型与原型链.md#7-instanceof-的实现原理)
+
+[手写 call / apply / bind](./this和call、apply、bind.md#5-手写-call-和-apply)
+
+[手写 Promise.[all/race/allSettled/any]](./异步和Promise.md#32-promiseall)
+
+[手写限制并发请求、手写 retry](./异步和Promise.md#4-手写题)
+
+## 1. 手写防抖和节流
+
+## 2. 函数柯里化
+
+柯里化是把接收多个参数的函数转换成一系列接收不限参数个数的函数。如果你固定某些参数，你将得到接受余下参数的一个函数。
+
+原理：用闭包把参数保存起来，当参数的长度等于原函数时，就开始执行原函数。
+
+这是一种对函数参数的“缓存”，让函数变的更灵活，粒度更小。
+
+bind 函数就是柯里化函数的一种。
+
+```javascript
+function curry(func) {
+  return function curriedFn(...args) {
+    // 判断实参和形参的个数，其中func.length返回函数的形参个数
+    return args.length < func.length
+      ? (...args2) => curriedFn(...args, ...args2)
+      : func(...args);
+  };
+}
+```
+
+```javascript
+function add(a, b, c) {
+  return a + b + c;
+}
+
+let curriedAdd = curry(add);
+console.log(curriedAdd(1, 2, 3)); // 6
+console.log(curriedAdd(1, 2)(3)); // 6
+console.log(curriedAdd(1)(2)(3)); // 6
+```
+
+可以固定一个函数的前几个参数。
+
+```javascript
+const match = curry(function (reg, str) {
+  return str.match(reg);
+});
+
+const haveSpace = match(/\s+/g);
+console.log(haveSpace("hello world")); // [' ']
+
+const haveNumber = match(/\d+/g);
+console.log(haveNumber("25$")); // ['25']
+```
+
+## 3. 手写数组原型方法
+
+### 3.1 Array.prototype.forEach()
 
 forEach() 方法对数组的每个元素执行一次给定的函数。
 
@@ -26,7 +88,7 @@ arr.myForEach((item, index) => {
 // 2: c
 ```
 
-## 2. Array.prototype.map()
+### 3.2 Array.prototype.map()
 
 map() 方法返回一个新数组，新数组由原数组中的每个元素都调用一次指定函数后的返回值组成。
 
@@ -53,7 +115,7 @@ console.log(arr2);
 // [1, 4, 9]
 ```
 
-## 3. Array.prototype.filter()
+### 3.3 Array.prototype.filter()
 
 filter() 方法会返回一个新数组，该新数组由调用回调函数返回 true 的项组成。
 
@@ -87,7 +149,7 @@ console.log(arr2);
 // [4, 2, 0]
 ```
 
-## 4. Array.prototype.reduce()
+### 3.4 Array.prototype.reduce()
 
 reduce() 方法对数组中的每个元素按序执行一个由您提供的 reducer 函数，每一次运行 reducer 会将先前元素的计算结果作为参数传入，最后将其结果汇总为单个返回值。
 
