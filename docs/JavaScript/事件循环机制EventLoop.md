@@ -1,5 +1,7 @@
 ## 1. 事件循环机制
 
+[从 event loop 规范探究 javaScript 异步及浏览器更新渲染时机](https://github.com/aooy/blog/issues/5)
+
 JavaScript 是单线程，一些高耗时操作会带来线程阻塞问题。为了解决这个问题，JavaScript 有两种任务的执行模式：同步模式和异步模式。
 
 **宏任务和微任务：** 异步任务分为`宏任务`与`微任务`两种，`宏任务`是由宿主（浏览器、Node）发起的，而`微任务`由 JavaScript 自身发起。
