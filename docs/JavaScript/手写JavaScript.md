@@ -12,6 +12,93 @@
 
 ## 1. 手写防抖和节流
 
+### 1.1 防抖
+
+有的操作是高频触发的，但其实等高频事件操作结束，只触发一次就好了。
+
+应用场景：
+
+- 监听输入框输入，不应该每次都去触发监听，应该是用户完成一段输入后，再进行触发。
+- 短时间内多次缩放页面，不应该每次缩放都去执行操作，拖动完成只缩放一次就好。
+
+```javascript
+/*
+ * @param {function} fn - 需要防抖的函数
+ * @param {number} time - 多长时间执行一次
+ * @param {boolean} flag - 第一次是否执行
+ */
+function debounce(fn, time, flag) {
+  let timer;
+  return function (...args) {
+    // 在time时间段内重复执行，会清空之前的定时器，然后重新计时
+    timer && clearTimeout(timer);
+    if (flag && !timer) {
+      // flag为true 第一次默认执行
+      fn.apply(this, args);
+    }
+    timer = setTimeout(() => {
+      fn.apply(this, args);
+    }, time);
+  };
+}
+
+function fn(a) {
+  console.log("执行:", a);
+}
+let debounceFn = debounce(fn, 3000, true);
+debounceFn(1);
+debounceFn(2);
+debounceFn(3);
+
+// 先打印：执行: 1
+// 3s后打印: 执行: 3
+```
+
+### 1.2 节流
+
+某个操作希望上一次的完成后再进行下一次，或者说希望隔一定时间触发一次。
+
+应用场景：
+
+- 如果一个按钮，第一次点击就发送请求。然后上一个请求回来后，才能再发；
+- 监听输入框输入，正在输入时每隔 200 毫秒给出提示。
+- 下拉滚动加载
+
+```javascript
+/*
+ * @param {function} fn - 需要防抖的函数
+ * @param {number} time - 多长时间执行一次
+ * @param {boolean} flag - 第一次是否执行
+ */
+function throttle(fn, time, flag) {
+  let timer;
+  return function (...args) {
+    // flag控制第一次是否立即执行
+    if (flag) {
+      fn.apply(this, args);
+      // 第一次执行完后，flag变为false；否则以后每次都会执行
+      flag = false;
+    }
+    if (!timer) {
+      timer = setTimeout(() => {
+        fn.apply(this, args);
+        clearTimeout(timer);
+        // 每次执行完重置timer
+        timer = null;
+      }, time);
+    }
+  };
+}
+
+// 测试
+function fn() {
+  console.log("fn");
+}
+let throttleFn = throttle(fn, 3000, true);
+setInterval(throttleFn, 500);
+// 一开始就打印"fn", 以后每隔3s打印一次"fn"
+```
+
 ## 2. 函数柯里化
 
 柯里化是把接收多个参数的函数转换成一系列接收不限参数个数的函数。如果你固定某些参数，你将得到接受余下参数的一个函数。

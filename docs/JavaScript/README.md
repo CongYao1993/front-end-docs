@@ -41,3 +41,9 @@
 - 手写深拷贝
 
 [设计模式](./设计模式.md)
+
+[手写 JavaScript](./手写JavaScript.md)
+
+- 防抖和节流
+- 函数柯里化
+- 手写 Array.prototype.[forEach / map / filter / reduce]
