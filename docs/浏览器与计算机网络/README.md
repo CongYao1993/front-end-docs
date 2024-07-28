@@ -9,3 +9,5 @@
 - 什么是 OPTIONS 预检请求，触发条件
 - HTTP 状态码
 - HTTP 1/2/3 的区别
+- 强缓存与协商缓存
+- memory cache 与 disk cache 的区别
