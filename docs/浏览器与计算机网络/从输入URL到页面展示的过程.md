@@ -77,7 +77,7 @@ MSL 是 Maximum Segment Lifetime 英文的缩写，表示报文最大生存时�
   - UI thread：控制浏览器上的按钮及输入框；
   - network thread：处理网络请求，从网上获取数据；
   - storage thread：控制文件等的访问。
-- 渲染进程：负责一个标签页内关于页面呈现的所有内容，将 HTML、CSS 和 JavaScript 转换为用户可以与之交互的网页。
+- 渲染进程：即通常所说的浏览器内核，负责一个标签页内关于页面呈现的所有内容，将 HTML、CSS 和 JavaScript 转换为用户可以与之交互的网页。
   - 排版引擎 Blink 和 JavaScript 引擎 V8 都是运行在该进程中；
   - 默认情况下，Chrome 会为每个 Tab 标签创建一个渲染进程。Tab 较多时，可能会合并某些进程。
 - GPU 进程：GPU 可以实现 3D CSS 的效果，网页、Chrome 的 UI 界面都选择采用 GPU 来绘制。
@@ -96,6 +96,97 @@ MSL 是 Maximum Segment Lifetime 英文的缩写，表示报文最大生存时�
 - 更高的资源占用。由于不同进程间的内存不共享，不同进程的内存常常需要包含相同的内容。例如每个进程都会包含公共基础结构的副本（如 JavaScript 运行环境）。
 - 更复杂的体系架构。浏览器各模块之间耦合性高、扩展性差等问题，会导致现在的架构已经很难适应新的需求了
 
+渲染进程包含 5 种线程：
+
+- GUI 渲染线程：主要负责页面的渲染，解析 HTML、CSS，构建 DOM 树，布局和绘制等。
+- JS 引擎线程：主要负责处理 JavaScript 脚本，执行代码。该线程与 GUI 渲染线程互斥，当 JS 引擎线程执行 JavaScript 脚本时间过长，将导致页面渲染的阻塞。
+- 事件触发线程：主要负责将准备好的事件交给 JS 引擎线程执行。比如 setTimeout 定时器计数结束， ajax 等异步请求成功并触发回调函数，或者用户触发点击事件时，该线程会将整装待发的事件依次加入到任务队列的队尾，等待 JS 引擎线程的执行。
+- 定时器触发线程：负责执行异步定时器一类的函数的线程，如： setTimeout，setInterval。
+- 异步 http 请求线程：负责执行异步请求一类的函数的线程，如： Promise，axios，ajax 等
+
 ## 5. 浏览器页面渲染的过程
 
 [渲染页面：浏览器的工作原理](https://developer.mozilla.org/zh-CN/docs/Web/Performance/How_browsers_work)
+
+浏览器与 web 服务器建立连接后，发送一个请求获取 HTML 文件。
+
+一旦浏览器收到第一个数据分块（通常是 14KB 的数据），就开始解析收到的信息，不必等获取到全部 HTML 文件才开始解析。但是在渲染到屏幕上面之前，HTML、CSS、JavaScript 必须被解析完成。
+
+### 5.1 构建 DOM 树
+
+解析 HTML 文件，构造 DOM 树，DOM 树描述了文档的内容。
+
+- 在控制台输入 document 回车，可查看 DOM 树的内容。
+- DOM 和 HTML 内容几乎是一样的，但是 DOM 保存在内存中是树状结构，可以通过 JavaScript 来查询或修改其内容。
+
+1. **解码（encoding）：** 浏览器读取 HTML 的二进制字节，并根据文件的指定编码（例如 UTF-8）将它们转换成字符串。
+2. **令牌化（Tokenization）：** 令牌化是词法分析的过程，将输入解析成 HTML 符号，包括：开始标签、结束标签、属性名和属性值。
+3. **DOM 树构建：** 创建 DOM 节点，插入 DOM 树中。
+4. 当整个解析的过程完成以后，浏览器会通过 DOMContentLoaded 事件来通知 DOM 解析完成。
+
+<img src="./images/document.png" width="80%" ></img>
+
+当解析器发现非阻塞资源，例如图片或、CSS 文件、iconfont，浏览器会请求这些资源并且继续解析。但是对于 `<script>` 标签（特别是没有 async 或者 defer 属性的）会阻塞 HTML 的解析。
+
+### 5.2 构建 CSSOM 树
+
+处理 CSS 并构建 CSSOM 树（样式计算）。
+
+- DOM 构造是增量的，CSSOM 却不是。
+- CSS 是渲染阻塞的：浏览器会阻塞页面渲染直到它接收和执行了所有的 CSS。因为规则可以被覆盖，所以内容不能被渲染直到 CSSOM 的完成。
+- 从选择器性能的角度，更少的特定选择器是比更多的要快，千万不要过渡层叠。
+
+1. 将 CSS 文本转换为浏览器可以理解的结构 styleSheets；
+   - 该结构同时具备了查询和修改功能
+   - 在控制台输入 document.styleSheets 回车，可查看 styleSheets 的内容
+2. 转换样式表中的属性值，使其标准化；
+   - 例，2em->32px，blue->rgb(0,0,255)，bold->700
+3. 计算出 DOM 树中每个节点的具体样式；
+   - 涉及到 CSS 的继承规则和层叠规则
+   - 所有的样式值会被挂在到 window.getComputedStyle 当中，可以通过 JS 来获取计算后的样式。
+
+### 5.3 生成布局树
+
+将 DOM 和 CSSOM 组合成布局树，渲染树将所有相关样式与 DOM 树中的每个可见节点匹配起来，并根据 CSS 级联，确定每个节点的计算样式。
+
+1. 从 DOM 树的根开始，遍历每个可见节点；
+2. 不可见的节点会被忽略，如 `<head>` 标签下面的全部内容，属性包含 `dispaly:none` 的元素。
+
+<img src="./images/layout-tree.png" width="70%" ></img>
+
+### 5.4 布局和回流/重排
+
+在渲染树上运行布局以计算每个节点的的尺寸和位置。
+
+**重排（reflow）：** 如果修改了节点大小和位置等，影响了布局，会引起重排。重排需要更新完整的渲染流水线，所以开销也是最大的。
+
+有以下的操作会触发回流:
+
+- 一个 DOM 元素的几何属性变化，常见的几何属性有 width、height、padding、margin、left、top、border 等。
+- DOM 节点的增加、删除或移动。
+- 读写 offset 族、scroll 族和 client 族属性的时候，浏览器为了获取这些值，需要进行回流操作。
+- 调用 window.getComputedStyle 方法。
+
+### 5.5 绘制和重绘
+
+将各个节点绘制到屏幕上，其中第一次的绘制被称为首次有意义的绘制。
+
+**重绘（repaint）：** 当页面中元素样式的改变并不影响它在文档流中的位置时（例如：color、background-color、visibility 等），浏览器会将新样式赋予给元素并重新绘制它，这个过程称为重绘。
+
+### 5.6 合成
+
+当文档的各个部分以不同的层绘制，相互重叠时，必须进行合成，以确保它们以正确的顺序绘制到屏幕上，并正确显示内容。
+
+## 6. script 标签 async 和 defer 的区别
+
+JavaScript 的加载、解析与执行会阻塞 DOM 的构建。如果 `<script>` 带有 async 和 defer，就会异步请求这些资源，不会阻塞页面渲染.
+
+- 执行顺序的区别
+  - async 的执行，并不会按照 script 在页面中的顺序来执行，而是谁先加载完谁执行
+  - defer 的执行，则会按照引入的顺序执行，即便是后面的 script 资源先返回
+- 对 window.onload 的影响
+  - 使用 async 的 script 标签，对 window.onload 事件没有影响，window.onload 可以在之前或之后执行
+  - 使用 defer 的 script 标签，会在 window.onload 事件之前被执行
+- 使用场景的区别
+  - 如果你的脚本并不关心页面中的 DOM 元素是否渲染，并且也不会产生其他脚本需要的数据，使用 async，如统计、埋点等功能
+  - defer 可以用来控制 js 文件的加载顺序
