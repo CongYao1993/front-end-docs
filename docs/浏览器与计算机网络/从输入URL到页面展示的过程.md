@@ -21,7 +21,7 @@
      3. 本地 DNS 服务器向`权威域名服务器`（例 163.com 域名服务器）发出请求，收到一个域名和 IP 地址对应关系；
      4. 本地 DNS 服务器把 IP 地址返回浏览器，把对应关系保存在缓存中，以备下次查询时直接返回结果。
 
-<img src="./images/dns-lookup.jpg" width="50%" ></img>
+<img src="./images/dns-lookup.jpg" width="50%" />
 
 ## 3. TCP 的三次握手和四次挥手
 
@@ -33,7 +33,7 @@
 2. 第二次握手：服务端收到数据包后，由标志位 SYN=1 知道客户端请求建立连接，服务端确认用户的 SYN 包（ACK=1，ack=x+1），服务端也发送一个 SYN 包（SYN=1，seq=y），服务端进入 SYN_RCVD 状态；
 3. 第三次握手：客户端收到确认后，检查 ACK 是否为 1，ack 是否为 x+1，如果正确则将标志位 ACK 置为 1，ack=y+1，并将该数据包发送给服务端，服务端检查 ACK 是否为 1，ack 是否为 y+1，如果正确则连接建立成功，客户端和服务端进入 ESTABLISHED 状态，完成三次握手，随后客户端与服务端之间可以开始传输数据了。
 
-<img src="./images/tcp-connect.png" width="60%" ></img>
+<img src="./images/tcp-connect.png" width="60%" />
 
 **握手为什么需要三次？**
 
@@ -53,7 +53,7 @@
 3. 第三次挥手：如果服务端也想断开连接了，服务端请求断开连接（FIN=1，ACK=1，序号 seq=w，确认号 ack=u+1），服务端进入 LAST_ACK 状态。
 4. 第四次挥手：客户端收到断开连接请求后，发出确认报文段（ACK=1，seq=u+1，ack=w+1），客户端进入 TIME_WAIT 状态。此时 TCP 未释放掉，需要经过时间等待计时器设置的时间 2MSL 后，客户端才进入 CLOSED 状态。
 
-<img src="./images/tcp-close.png" width="60%" ></img>
+<img src="./images/tcp-close.png" width="60%" />
 
 **挥手为什么需要四次？**
 
@@ -69,9 +69,9 @@ MSL 是 Maximum Segment Lifetime 英文的缩写，表示报文最大生存时�
 
 ## 4. 浏览器进程
 
-<img src="./images/browser-process1.png" width="60%" ></img>
+<img src="./images/browser-process1.png" width="60%" />
 
-<img src="./images/browser-process2.png" width="60%" ></img>
+<img src="./images/browser-process2.png" width="60%" />
 
 - 浏览器主进程：主要负责界面显示、用户交互、子进程管理，同时提供存储等功能。
   - UI thread：控制浏览器上的按钮及输入框；
@@ -124,7 +124,7 @@ MSL 是 Maximum Segment Lifetime 英文的缩写，表示报文最大生存时�
 3. **DOM 树构建：** 创建 DOM 节点，插入 DOM 树中。
 4. 当整个解析的过程完成以后，浏览器会通过 DOMContentLoaded 事件来通知 DOM 解析完成。
 
-<img src="./images/document.png" width="80%" ></img>
+<img src="./images/document.png" width="80%" />
 
 当解析器发现非阻塞资源，例如图片或、CSS 文件、iconfont，浏览器会请求这些资源并且继续解析。但是对于 `<script>` 标签（特别是没有 async 或者 defer 属性的）会阻塞 HTML 的解析。
 
@@ -152,7 +152,7 @@ MSL 是 Maximum Segment Lifetime 英文的缩写，表示报文最大生存时�
 1. 从 DOM 树的根开始，遍历每个可见节点；
 2. 不可见的节点会被忽略，如 `<head>` 标签下面的全部内容，属性包含 `dispaly:none` 的元素。
 
-<img src="./images/layout-tree.png" width="70%" ></img>
+<img src="./images/layout-tree.png" width="70%" />
 
 ### 5.4 布局和回流/重排
 

@@ -13,7 +13,7 @@ WebSocket 是应用层的网络通信协议。特点如下：
 
 ## 2. WebSocket 建立连接
 
-<img src="./images/websocket-connect.png" width="60%" ></img>
+<img src="./images/websocket-connect.png" width="60%" />
 
 1. 客户端发起 http 请求，经过 3 次握手，与服务器建立 TCP 连接（HTTP 版本必须是 1.1 以上）；
 2. 发送一个 GET 请求进行协议升级，http 请求头存放 WebSocket 相关信息；

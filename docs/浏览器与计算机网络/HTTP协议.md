@@ -184,7 +184,7 @@ HTTP/1 和 HTTP/2 均是基于 TCP 的协议。TCP 的缺陷：
 
 HTTP/3 选择了 UDP 协议，避免设备僵化的问题。基于 UDP 实现了类似于 TCP 的多路数据流、传输可靠性等功能，把这套功能称为 QUIC 协议。
 
-<img src="./images/http-2-3.png" width="45%" ></img>
+<img src="./images/http-2-3.png" width="45%" />
 
 - 实现了类似 TCP 的流量控制、传输可靠性的功能。
 - 集成了 TLS 加密功能，减少了握手的网络延迟。
@@ -232,7 +232,7 @@ SSL/TLS 的握手阶段涉及四次通信：
 - 会被篡改？**摘要算法**：客户端通过摘要算法计算明文的指纹，把「指纹+明文」一同加密，发送给服务器；服务器解密后，用相同的摘要算法计算明文的指纹，与客户端携带的指纹做比较，若指纹相同，说明数据是完整的。
 - 会被伪装？**数字证书**：借助第三方权威机构 CA（数字证书认证机构），将服务器公钥放在数字证书中，只要证书是可信的，公钥就是可信的。
 
-<img src="./images/ca.png" width="60%" ></img>
+<img src="./images/ca.png" width="60%" />
 
 ## 6. HTTP 缓存
 
@@ -275,7 +275,7 @@ Etag 优先级高于 Last-Modified。
 - Last-Modified 的时间单位是秒，如果某个文件在 1 秒内改变了多次，那么他们的 Last-Modified 其实并没有体现出来修改，但是 Etag 每次都会改变确保了精度；如果是负载均衡的服务器，各个服务器生成的 Last-Modified 也有可能不一致。
 - Etag 比 Last-Modified 性能差，因为 Last-Modified 只需要记录时间，而 Etag 需要服务器通过算法来计算出一个 hash 值。
 
-<img src="./images/http-cache.png" width="60%" ></img>
+<img src="./images/http-cache.png" width="60%" />
 
 缓存策略：
 

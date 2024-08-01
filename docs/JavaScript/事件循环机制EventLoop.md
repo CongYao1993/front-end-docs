@@ -28,9 +28,9 @@ JavaScript 是单线程，一些高耗时操作会带来线程阻塞问题。为
 5. 执行一些必要的渲染和绘制操作；
 6. 进入下一个循环，执行下一个宏任务。
 
-<img src="./images/event-loop.jpg" width="50%" ></img>
+<img src="./images/event-loop.jpg" width="50%" />
 
-<img src="./images/event-loop.png" width="80%" ></img>
+<img src="./images/event-loop.png" width="80%" />
 
 **为什么要设计宏任务和微任务两个队列：** 宏任务难以满足对时间精度要求较高的任务，很难控制任务开始执行的时间。为每个宏任务增加了微任务队列后，微任务既不会影响当前宏任务的执行效率，也解决了实时性问题，在当前宏任务主要功能执行结束后去执行对应的微任务。
 
