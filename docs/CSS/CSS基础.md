@@ -95,7 +95,7 @@ BFC 的应用：
 </div>
 ```
 
-![image.png](./images/BFC-1-1.png) ![image.png](./images/BFC-1-2.png)
+![image.png](./images/BFC-1.png)
 
 2. 解决元素被浮动元素覆盖；创建左边固定、右边自适应布局
 
@@ -109,7 +109,7 @@ BFC 的应用：
 </div>
 ```
 
-![image.png](./images/BFC-2-1.png) ![image.png](./images/BFC-2-2.png)
+![image.png](./images/BFC-2.png)
 
 3. 阻止外边距塌陷
 
@@ -137,4 +137,4 @@ BFC 的应用：
 }
 ```
 
-![image.png](./images/BFC-3-1.png) ![image.png](./images/BFC-3-2.png)
+![image.png](./images/BFC-3.png)
