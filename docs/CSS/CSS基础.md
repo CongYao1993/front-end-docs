@@ -7,6 +7,24 @@
 - `box-sizing: content-box`：是默认值，设置 width 和 height 指设置内容区域的大小。
 - `box-sizing: border-box`：设置 width 和 height 指设置 content + padding + border 的大小。
 
+## 2. em、rem、%、vw / vh
+
+- em 相对于父元素的字体大小。
+- rem 相对于根元素`<html>`的字体大小。
+- 百分比 %
+
+  - width 和 height 相对于直接父元素的宽高；
+  - top 和 bottom 相对于直接非 static 定位父元素的高度；
+  - left 和 right 相对于直接非 static 定位父元素的宽度；
+  - padding 和 margin 相对于直接父亲元素的宽度，与父元素高度无关；
+  - border-radius 相对于自身的宽度；
+  - translate、background-size 等都是相对于自身的；
+  - font-size 相对于继承字体大小；
+  - line-height 相对于自身字体大小。
+
+- vh 和 vw 分别相对于视口的高度和宽度；vmin 和 vmax 表示 vw 和 vh 中的较小值和较大值。
+  - 视口宽度为 100vw，高度为 100vh
+
 ## 2. 伪类和伪元素
 
 伪类是选择器的一种，用于选择处于特定状态的元素，为其添加样式，比如某类型的第一个元素，或当鼠标指针悬浮在元素上面时。
