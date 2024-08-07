@@ -15,3 +15,6 @@
 - new Vue() 实例挂载的过程
 - Vue 响应式原理
   - 使用 Object.defineProperty() 来进行数据劫持有什么缺点？
+  - Vue3 的响应式原理
+  - computed 原理
+  - watch 原理

@@ -23,7 +23,7 @@ function Vue(options) {
 4. **初始化渲染函数**：如果有 render 函数，则直接使用；否则，将 template 编译成 render 函数。
 5. `beforeCreate`：此时数据观测和事件还未初始化。
 6. **初始化 inject**：解析 inject 选项，得到注入的属性。
-7. **初始化状态**：依次处理 props、methods、data 并将其转换为响应式、computed 和 watch。
+7. **初始化状态**：依次处理 props、methods、data 并将其转换为响应式，初始化 computed 和 watch。
 8. **初始化 provide**：解析 provide 选项，使得子组件可以注入。
 9. `created`：此时，响应式数据、计算属性、方法和侦听器都已经设置好了。
 10. **开始挂载阶段**：如果有 el 选项，则自动开始挂载过程。
@@ -98,6 +98,34 @@ Vue.prototype._init = function (options?: Object) {
     vm.$mount(vm.$options.el);
   }
 };
+```
+
+initState 是初始化 props/methods/data/computed/watch。
+
+```javascript
+// src\core\instance\state.js
+
+export function initState(vm: Component) {
+  // 初始化组件的 watcher 列表
+  vm._watchers = [];
+  const opts = vm.$options;
+  // 初始化 props
+  if (opts.props) initProps(vm, opts.props);
+  // 初始化 methods 方法
+  if (opts.methods) initMethods(vm, opts.methods);
+  // 初始化 data
+  if (opts.data) {
+    initData(vm);
+  } else {
+    observe((vm._data = {}), true /* asRootData */);
+  }
+  // 初始化 computed
+  if (opts.computed) initComputed(vm, opts.computed);
+  // 初始化 watch
+  if (opts.watch && opts.watch !== nativeWatch) {
+    initWatch(vm, opts.watch);
+  }
+}
 ```
 
 ## 2. Vue 响应式原理
@@ -257,6 +285,126 @@ this.$set(this.items, indexOfItem, newValue);
 // 修改数组长度：newLength 必须小于当前长度，数组中新长度之后所有元素被删除
 this.items.splice(newLength);
 ```
+
+### 2.3 Vue3 使用 Proxy 实现响应式
+
+Proxy 默认只代理一层对象的属性；对于`obj.a.b=0`，会先 get`obj.a`，再 set`obj.a.b`；对于`obj.a.b`，也会 get 两次。
+
+```javascript
+function observe(target) {
+  return new Proxy(target, {
+    get(target, key, receiver) {
+      // todo: 收集依赖
+
+      let result = Reflect.get(target, key, receiver);
+      // 递归获取对象多层嵌套的情况，如obj.a.b
+      return typeof result === "object" && result !== null
+        ? observe(result)
+        : result;
+    },
+    set(target, key, value, receiver) {
+      // todo: 更新依赖
+
+      return Reflect.set(target, key, value, receiver);
+    },
+  });
+}
+```
+
+### 2.4 computed 原理
+
+计算属性本质上是 `computed watcher`。
+
+1. 在 created 之前会 initState，包含 initComputed；
+
+- 遍历 computed 对象，给其中每一个计算属性分别生成一个 `computed watcher`，并将该 watcher 中的 dirty 设置为 true；
+  - initComputed 时，计算属性并不会立即计算，只有当获取计算属性值时才会计算
+- 将 Dep.target 设置成当前的 `computed watcher`，将 `computed watcher` 添加到所依赖 data 值对应的 dep 中（收集依赖），然后计算 computed 对应的值，将 dirty 改成 false
+
+2. 当所依赖 data 中的值发生变化时，调用 set 方法触发 dep 的 notify 方法，将 `computed watcher` 中的 dirty 设置为 true
+3. 渲染 watcher 订阅 `computed watcher` 的变化，所以当渲染 watcher 重新渲染时，会获取计算属性值，若 dirty 为 true, 重新计算属性的值
+
+dirty 是控制缓存的关键，当所依赖的 data 发生变化，dirty 设置为 true，再次被获取时，就会重新计算。
+
+```javascript
+// 空函数
+const noop = () => {};
+// computed 初始化的 Watcher 传入 lazy: true，设置 Watcher 中的 dirty 为 true
+const computedWatcherOptions = { lazy: true };
+// Object.defineProperty 默认 value 参数
+const sharedPropertyDefinition = {
+  enumerable: true,
+  configurable: true,
+  get: noop,
+  set: noop,
+};
+
+// 初始化 computed
+class initComputed {
+  constructor(vm, computed) {
+    // 新建存储 Watcher 对象，挂载在 vm 对象执行
+    const watchers = (vm._computedWatchers = Object.create(null));
+    // 遍历 computed
+    for (const key in computed) {
+      const userDef = computed[key];
+      // getter 值为 computed 中 key 的监听函数或对象的 get 值
+      let getter = typeof userDef === "function" ? userDef : userDef.get;
+      // 新建 computed watcher
+      watchers[key] = new Watcher(vm, getter, noop, computedWatcherOptions);
+      if (!(key in vm)) {
+        // 定义计算属性
+        this.defineComputed(vm, key, userDef);
+      }
+    }
+  }
+
+  // 重新定义计算属性，利用 Object.defineProperty 来对计算属性的 get 和 set 进行劫持
+  defineComputed(target, key, userDef) {
+    // 如果是一个函数，需要手动赋值到 get 上
+    if (typeof userDef === "function") {
+      sharedPropertyDefinition.get = this.createComputedGetter(key);
+      sharedPropertyDefinition.set = noop;
+    } else {
+      sharedPropertyDefinition.get = userDef.get
+        ? userDef.cache !== false
+          ? this.createComputedGetter(key)
+          : userDef.get
+        : noop;
+      // 如果有 set 方法则直接使用，否则赋值空函数
+      sharedPropertyDefinition.set = userDef.set ? userDef.set : noop;
+    }
+    Object.defineProperty(target, key, sharedPropertyDefinition);
+  }
+
+  // 计算属性的 getter，获取计算属性的值时会调用
+  createComputedGetter(key) {
+    return function computedGetter() {
+      // 获取对应的计算属性 watcher
+      const watcher = this._computedWatchers && this._computedWatchers[key];
+      if (watcher) {
+        // dirty 为 true，计算属性需要重新计算
+        if (watcher.dirty) {
+          watcher.evaluate();
+        }
+        // 收集依赖
+        if (Dep.target) {
+          watcher.depend();
+        }
+        // 返回计算属性的值
+        return watcher.value;
+      }
+    };
+  }
+}
+```
+
+### 2.5 watch 原理
+
+1. 遍历 watch 对象， 给其中每一个 watch 属性，生成对应的 `user watcher`
+2. 调用 watcher 中的 get 方法，将 Dep.target 设置成当前的 `user watcher`，并将 `user watcher` 添加到监听 data 值对应的 dep 中（收集依赖）
+3. 当所监听 data 中的值发生变化时，会调用 set 方法触发 dep 的 notify 方法，执行 watcher 中定义的方法
+
+`deep：true` 原理：递归遍历所监听的对象，将 `user watcher` 添加到对象中每一层 key 值的 dep 对象中，这样无论当对象的中哪一层发生变化，wacher 都能监听到。
 
 ## 3. 虚拟 DOM 和 diff 算法
 
