@@ -410,8 +410,222 @@ class initComputed {
 
 ## 4. nextTick 原理
 
-首先明确 Task -> MicroTask -> UI Render 顺序是一定的，Vue 中对于异步更新的运用主要是维护异步队列 dom 更新合并，以及 nextTick。
+### 4.1 Vue DOM 的异步更新
 
-而 nextTick 的实质也是 MicroTask，只是它会在执行时立刻追加到异步队列后面，而当你依次执行队列时，UI 虽然没渲染，但是 DOM 其实已经更新了，注意：DOM 更新是及时的，但是更新是异步的。
+原生 DOM 的修改是同步的，渲染是异步的，渲染的顺序是 Task -> MicroTask -> UI Render，即在微任务队列清空之后的浏览器刷新时重新渲染。
+
+```html
+<div id="div"></div>
+<script>
+  Promise.resolve().then(() => {
+    console.log("promise");
+  });
+  var div = document.getElementById("div");
+  // 同步修改 DOM
+  div.innerHTML = "divInnerHTML";
+  console.log(div.innerHTML);
+  // divInnerHTML
+  // promise
+</script>
+```
+
+当你在 Vue 中更改响应式状态时，DOM 更新并不是同步生效的，即使数据多次变化，但 DOM 只会更新一次。
+
+1. 侦听到数据变化，Vue 将开启一个队列，缓存同一事件循环中的所有 Watcher；
+2. 如果有同一个 Watcher，只推入队列一次，避免不必要的计算和 DOM 操作；
+3. 如果 flushing 为 false，就调用 nextTick 将 DOM 更新函数 flushSchedulerQueue 添加至微任务队列。之后如果有其它待更新 Watcher，也会继续添加至 queue 数组（闭包），flushSchedulerQueue 执行时会一起更新。
+4. 同步任务执行完毕，开始执行微任务，包括异步 Watcher 队列的任务，一次性更新 DOM。
+
+注意：这里说的 DOM 都是更新，不是渲染。
+
+```javascript
+/** Vue DOM更新简化版源码 */
+
+// 定义watcher类
+class Watcher {
+  update() {
+    // 放到 watcher 队列中，异步更新
+    queueWatcher(this);
+  }
+  // 触发更新
+  run() {
+    this.get();
+  }
+}
+
+// 保存 watcher 的队列
+const queue: Array<Watcher> = [];
+// 保存 watcher 的 id，进行去重操作
+let has: { [key: number]: true | undefined | null } = {};
+// 如果异步队列正在执行，将不会再次执行
+let flushing = false;
+
+// 队列中添加 watcher
+function queueWatcher(watcher) {
+  const id = watcher.id;
+  // 先判断 watcher 是否存在，去掉重复的 watcher
+  if (!has[id]) {
+    queue.push(watcher);
+    has[id] = true;
+    if (!flushing) {
+      flushing = true;
+      // 使用异步更新 watcher
+      nextTick(flushSchedulerQueue);
+    }
+  }
+}
+
+// 执行 watcher 队列的任务
+function flushSchedulerQueue() {
+  queue.forEach((watcher) => {
+    watcher.run();
+    if (watcher.options.render) {
+      // 在更新之后执行对应的回调，这里是 updated 钩子函数
+      watcher.cb();
+    }
+  });
+  // 执行完成后清空队列，重置 flushing 状态
+  queue = [];
+  has = {};
+  flushing = false;
+}
+```
+
+### 4.2 nextTick 原理
+
+nextTick() 可以在数据修改后立即使用，以获取 DOM 更新后的状态。
+
+- 判断当前环境优先支持的异步方法，优先选择微任务，优先级：Promise、MutationObserver、setImmediate、setTimeout。
+- setTimeout 可能产生一个 4ms 的延迟，而 setImmediate 会在主线程执行完后立刻执行，setImmediate 在 IE10 和 node 中支持。
+
+nextTick 的实质是 MicroTask。数据更新时，会调用 nextTick 将 DOM 更新代码`watcher.run();`添加至微任务；如果我们在数据更新后面调用 nextTick，也会添加至微任务队列，因为 DOM 的更新是同步的，就能获取到最新 DOM 了。
+
+```javascript
+// noop 表示一个无操作空函数，用作函数默认值，防止传入 undefined 导致报错
+import { noop } from 'shared/util'
+// handleError 错误处理函数
+import { handleError } from './error'
+// isIE, isIOS环境判断函数，
+// isNative 判断某个属性或方法是否原生支持，如果不支持或通过第三方实现支持都会返回 false
+import { isIE, isIOS, isNative } from './env'
+
+// 标记 nextTick 最终是否以微任务执行
+export let isUsingMicroTask = false
+
+// 存放调用 nextTick 时传入的回调函数
+const callbacks: Array<Function> = []
+// 标记是否已经向任务队列中添加了一个任务，如果已经添加了就不能再添加了
+// 当向任务队列中添加了任务时，将 pending 置为 true，当任务被执行后将 pending 置为 false
+let pending = false
+
+// 如果多次调用 nextTick，将 nextTick 的回调放在 callbacks 数组中
+// 最后通过 flushCallbacks 函数遍历 callbacks 数组的拷贝并执行其中的回调
+function flushCallbacks() {
+  pending = false
+  // 为什么要拷贝一份 callbacks？
+  // 在 nextTick 回调中可能还会调用 nextTick，又会向 callbacks 中添加回调，
+  // nextTick 回调中的 nextTick 应该放在下一轮执行，否则就可能出现一直循环的情况
+  const copies = callbacks.slice(0) // 拷贝一份 callbacks
+  callbacks.length = 0 // 清空 callbacks
+  for (let i = 0; i < copies.length; i++) { // 遍历执行传入的回调
+    copies[i]()
+  }
+}
+
+let timerFunc
+
+/* istanbul ignore next, $flow-disable-line */
+if (typeof Promise !== 'undefined' && isNative(Promise)) {
+  // 判断当前环境是否原生支持 promise
+
+  const p = Promise.resolve()
+  timerFunc = () => {
+    // 用 promise.then 把 flushCallbacks 函数包裹成一个异步微任务
+    p.then(flushCallbacks)
+    // 这里的 setTimeout 是用来强制刷新微任务队列的
+    // 因为在 ios 下 promise.then 后面没有宏任务的话，微任务队列不会刷新
+    if (isIOS) setTimeout(noop)
+  }
+  // 标记当前 nextTick 使用的微任务
+  isUsingMicroTask = true
+} else if (
+  !isIE &&
+  typeof MutationObserver !== 'undefined' &&
+  (isNative(MutationObserver) ||
+    // PhantomJS and iOS 7.x
+    MutationObserver.toString() === '[object MutationObserverConstructor]')
+) {
+  // 如果不支持 promise，就判断是否支持 MutationObserver
+  // 不是IE环境，并且原生支持 MutationObserver，那也是一个微任务
+
+  let counter = 1
+  // new 一个 MutationObserver 类
+  const observer = new MutationObserver(flushCallbacks)
+  // 创建一个文本节点
+  const textNode = document.createTextNode(String(counter))
+  // 监听这个文本节点，当数据发生变化就执行 flushCallbacks
+  observer.observe(textNode, {
+    characterData: true
+  })
+  timerFunc = () => {
+    counter = (counter + 1) % 2
+    textNode.data = String(counter) // 数据更新
+  }
+
+  // 标记当前 nextTick 使用的微任务
+  isUsingMicroTask = true
+} else if (typeof setImmediate !== 'undefined' && isNative(setImmediate)) {
+  // 判断当前环境是否原生支持 setImmediate
+
+  timerFunc = () => {
+    setImmediate(flushCallbacks)
+  }
+} else {
+  // 以上三种都不支持就选择 setTimeout
+
+  timerFunc = () => {
+    setTimeout(flushCallbacks, 0)
+  }
+}
+
+// 声明 nextTick 函数，接收一个回调函数和一个执行上下文作为参数
+// 回调的 this 自动绑定到调用它的实例上
+export function nextTick(): Promise<void>
+export function nextTick<T>(this: T, cb: (this: T, ...args: any[]) => any): void
+export function nextTick<T>(cb: (this: T, ...args: any[]) => any, ctx: T): void
+/**
+ * @internal
+ */
+export function nextTick(cb?: (...args: any[]) => any, ctx?: object) {
+  let _resolve
+  // 将传入的回调函数存放到数组中，后面会遍历执行其中的回调
+  callbacks.push(() => {
+    if (cb) {
+      try {
+        cb.call(ctx)
+      } catch (e: any) {
+        handleError(e, ctx, 'nextTick')
+      }
+    } else if (_resolve) {
+      _resolve(ctx)
+    }
+  })
+  // 如果当前没有在 pending 的回调，就执行 timeFunc 函数选择当前环境优先支持的异步方法
+  // 当在同一轮事件循环中多次调用 nextTick 时，timerFunc 只会执行一次
+  if (!pending) {
+    pending = true
+    timerFunc()
+  }
+  // 如果没有传入回调，并且当前环境支持 promise，就返回一个 promise，在返回的这个 promise.then 中 DOM 已经更新好了
+  // $flow-disable-line
+  if (!cb && typeof Promise !== 'undefined') {
+    return new Promise(resolve => {
+      _resolve = resolve
+    })
+  }
+}
+```
 
 ## 5. keep-alive 原理
+
+[Vue.js 源码分析](https://github.com/ustbhuangyi/vue-analysis)
