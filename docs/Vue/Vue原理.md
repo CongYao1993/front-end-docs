@@ -970,7 +970,194 @@ export default {
 
 ## 5. keep-alive 原理
 
-[Vue.js 源码分析](https://github.com/ustbhuangyi/vue-analysis)
+### 5.1 什么是 keep-alive
+
+可以用 `<keep-alive>` 元素将动态组件包裹起来，包裹的组件实例在它们第一次被创建时被缓存，组件切换后也不会被销毁，防止重复渲染 DOM。
+
+`<keep-alive>` 有以下三个属性：
+
+- `include`：字符串或正则表达式，只有名称匹配的组件会被缓存。
+- `exclude`：字符串或正则表达式，任何名称匹配的组件都不会被缓存。
+- `max`：数字，最多可以缓存多少个组件实例。
+
+```html
+<keep-alive>
+  <component :is="view"></component>
+</keep-alive>
+
+<keep-alive include="a,b">
+  <component :is="view"></component>
+</keep-alive>
+```
+
+`<keep-alive>` 包裹组件的生命周期：
+
+- `activated`：被 `<keep-alive>` 缓存的组件激活时调用。
+- `deactivated`：被 `<keep-alive>` 缓存的组件停用时调用。
+
+设置了 `keep-alive` 缓存的组件的生命周期：
+
+- 首次进入组件时：beforeRouteEnter > beforeCreate > created > mounted > activated > ... ... > beforeRouteLeave > deactivated
+- 再次进入组件时：beforeRouteEnter > activated > ... ... > beforeRouteLeave > deactivated
+
+### 5.2 keep-alive 原理
+
+`keep-alive`是 vue 中内置的一个组件。
+
+1. 该组件没有 template，而是用了 render，在组件渲染的时候会自动执行 render 函数。
+2. 通过插槽 `this.$slots` 获取包裹的组件的 vnode，获取第一个子组件，只对第一个子组件有效
+3. 判断组件的 name 是否在 include 或 exclude 中，确认该组件是否需要缓存
+4. 如果需要缓存，通过组件的 key 或者 cid+tag 判断，该组件是否有缓存
+
+- 如果有缓存，返回缓存，更新 LRU 队列
+- 如果没有缓存，进入 mounted 或 updated 生命周期，设置缓存，在 LRU 队列新增组件 key，如果 max 已满，删除最老的组件 key
+
+```typescript
+// src/core/components/keep-alive.js
+
+export default {
+  name: "keep-alive",
+  abstract: true,
+
+  props: {
+    include: patternTypes,
+    exclude: patternTypes,
+    max: [String, Number],
+  },
+
+  methods: {
+    cacheVNode() {
+      const { cache, keys, vnodeToCache, keyToCache } = this;
+      if (vnodeToCache) {
+        const { tag, componentInstance, componentOptions } = vnodeToCache;
+        cache[keyToCache] = {
+          name: _getComponentName(componentOptions),
+          tag,
+          componentInstance,
+        };
+        keys.push(keyToCache);
+        // prune oldest entry
+        if (this.max && keys.length > parseInt(this.max)) {
+          pruneCacheEntry(cache, keys[0], keys, this._vnode);
+        }
+        this.vnodeToCache = null;
+      }
+    },
+  },
+
+  created() {
+    this.cache = Object.create(null);
+    this.keys = [];
+  },
+
+  destroyed() {
+    for (const key in this.cache) {
+      pruneCacheEntry(this.cache, key, this.keys);
+    }
+  },
+
+  mounted() {
+    this.cacheVNode();
+    this.$watch("include", (val) => {
+      pruneCache(this, (name) => matches(val, name));
+    });
+    this.$watch("exclude", (val) => {
+      pruneCache(this, (name) => !matches(val, name));
+    });
+  },
+
+  updated() {
+    this.cacheVNode();
+  },
+
+  render() {
+    // 获取默认插槽中的第一个组件节点
+    const slot = this.$slots.default;
+    const vnode = getFirstComponentChild(slot);
+    // 获取该组件节点的 componentOptions
+    const componentOptions = vnode && vnode.componentOptions;
+    if (componentOptions) {
+      // 获取该组件节点的名称，优先获取组件的 name 字段，如果 name 不存在则获取组件的 tag
+      const name = _getComponentName(componentOptions);
+      const { include, exclude } = this;
+      // 如果 name 不在 inlcude 中或者存在于 exlude 中，则表示不缓存，直接返回 vnode
+      if (
+        // not included
+        (include && (!name || !matches(include, name))) ||
+        // excluded
+        (exclude && name && matches(exclude, name))
+      ) {
+        return vnode;
+      }
+
+      const { cache, keys } = this;
+      // 获取组件的 key 值
+      const key =
+        vnode.key == null
+          ? componentOptions.Ctor.cid + (componentOptions.tag ? `::${componentOptions.tag}` : "")
+          : vnode.key;
+      if (cache[key]) {
+        // 该组件有缓存
+        vnode.componentInstance = cache[key].componentInstance;
+        // 调整该组件 key 的顺序，将其从原来的地方删掉并重新放在最后一个，LRU 算法
+        // make current key freshest
+        remove(keys, key);
+        keys.push(key);
+      } else {
+        // 如果没有缓存，则将其设置进缓存，进入 mounted 或 updated
+        // delay setting the cache until update
+        this.vnodeToCache = vnode;
+        this.keyToCache = key;
+      }
+
+      // @ts-expect-error can vnode.data can be undefined
+      vnode.data.keepAlive = true;
+    }
+    return vnode || (slot && slot[0]);
+  },
+};
+```
+
+在 mounted 钩子函数中观测 include 和 exclude 的变化，如果二者发生了变化，表示需要缓存或不缓存组件的规则发生了变化，那么就执行 pruneCache 函数。
+
+pruneCache 函数对 cache 对象进行遍历，取出每一项的 name 值，用其与新的缓存规则进行匹配，如果匹配不上，则表示在新的缓存规则下该组件已经不需要被缓存，则调用 pruneCacheEntry 函数将其从 cache 对象剔除即可。
+
+```javascript
+function pruneCache() {
+  const { cache, keys, _vnode, $vnode } = keepAliveInstance;
+  for (const key in cache) {
+    const entry = cache[key];
+    if (entry) {
+      const name = entry.name;
+      // 如果该组件已经不需要缓存
+      if (name && !filter(name)) {
+        pruneCacheEntry(cache, key, keys, _vnode);
+      }
+    }
+  }
+  $vnode.componentOptions!.children = undefined;
+}
+
+// 从 cache 对象中删除 key 属性
+function pruneCacheEntry() {
+  const entry = cache[key]
+  if (entry && (!current || entry.tag !== current.tag)) {
+    entry.componentInstance.$destroy()
+  }
+  cache[key] = null
+  remove(keys, key)
+}
+```
+
+### 5.3 LRU 缓存策略
+
+LRU（least recently used）缓存策略 ∶ 从内存中找出最久未使用的数据进行清除。因为如果数据最近被访问过，那么将来再次被访问的几率也更高。
+
+在实现 `keep-alive` 时，使用 cache 对象保存 `key-组件` ，使用 keys 数组保存最近访问数据的 key。
+
+- keys 数组最前面是最久未使用数据的 key，最后面是最新访问数据的 key
+- 如果有新访问的组件，把该组件的 key push 至 keys，如果 `keys.length > max`，移除 keys[0]
+- 如果访问已缓存的组件，从 keys 中找到该组件的 key，删除，在末尾 push 该组件的 key
 
 ## 6. css scoped 原理
 
@@ -991,3 +1178,5 @@ export default {
   console.log(document.querySelector(".test-attr").getAttribute("data-v-27e4e96e") === ""); // true
 </script>
 ```
+
+[Vue.js 源码分析](https://github.com/ustbhuangyi/vue-analysis)
