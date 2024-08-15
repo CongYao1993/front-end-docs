@@ -31,6 +31,16 @@ Vuex 的数据传输流程：
 
 <img src="./images/vuex.jpg" width="60%" />
 
+Vuex 优点：
+
+- Vuex 把全局共享的状态进行抽离，通过单项数据流进行修改，可以跟踪每一个状态的变化，代码变得结构化且可维护。
+- 解决了兄弟组件传参问题。
+- Vuex 数据是响应式的，如果是单纯的全局对象，是非响应式的。
+
+Vuex 缺点：
+
+- Vuex 保存在内存中，页面刷新会丢失。
+
 ## 2. Vuex 原理
 
 Vuex 的本质是 Vue 的一个插件。
@@ -164,3 +174,15 @@ function resetStoreVM(store, state, hot) {
   }
 }
 ```
+
+## 3. Vuex 为什么要区分 actions 和 mutations
+
+Vuex 中所有的状态更新的唯一途径都是 mutation，异步操作通过 action 来提交 mutation 实现。
+
+”在 mutations 中混合异步调用会导致你的程序很难调试。例如，当你能调用了两个包含异步回调的 mutations 来改变状态，你怎么知道什么时候回调和哪个先回调呢？这就是为什么我们要区分这两个概念。在 Vuex 中，我们将全部的改变都用同步方式实现。我们将全部的异步操作都放在 Actions 中。”这是 Vuex 官方的解释，但是如果同时发出了两个异步 actions，state 的更新还是存在竞态的。
+
+区分 actions 和 mutations 并不是为了解决竞态问题，而是为了能用 devtools 追踪状态变化。
+
+actions 只是一个架构性的概念，并不是必须的，说到底只是一个函数，你在里面想干嘛都可以，只要最后触发 mutations 就行。异步竞态怎么处理那是用户自己的事情。vuex 真正限制你的只有 mutations 必须是同步的这一点。
+
+同步的意义在于这样每一个 mutations 执行完成后都可以对应到一个新的状态，这样 devtools 就可以打个 snapshot 存下来，然后就可以随便 time-travel 了。果 mutation 支持异步操作，就没有办法知道状态是何时更新的，无法很好的进行状态的追踪，给调试带来困难。
