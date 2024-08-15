@@ -11,8 +11,7 @@ Vue.component("button-counter", {
       count: 0,
     };
   },
-  template:
-    '<button v-on:click="count++">You clicked me {{ count }} times.</button>',
+  template: '<button v-on:click="count++">You clicked me {{ count }} times.</button>',
 });
 ```
 
@@ -143,20 +142,7 @@ Vue 实例的生命周期是指从开始创建、初始化数据、编译模版�
 3. 子组件 destroyed
 4. 父组件 destoryed
 
-## 8. 混入 mixin 的生命周期
-
-mixin 的钩子函数总是在当前组件之前执行。加载渲染过程如下：
-
-1. 混入 beforeCreate
-2. 组件 beforeCreate
-3. 混入 created
-4. 组件 created
-5. 混入 beforeMount
-6. 组件 beforeMount
-7. 混入 mounted
-8. 组件 mounted
-
-## 9. Vue 组件通信的方式
+## 8. Vue 组件通信的方式
 
 - `props` / `$emit`
   - 父组件通过 props 向子组件传递数据
@@ -177,3 +163,22 @@ mixin 的钩子函数总是在当前组件之前执行。加载渲染过程如�
   - 耦合性较强，如果业务逻辑复杂，后期维护困难。
 - `vuex`
   - 将这一些公共的数据抽离出来，将它作为一个全局的变量来管理，然后其他组件就可以对这个公共数据进行读写操作，这样达到了解耦的目的。
+
+## 9. 混入 mixin 的规则
+
+混入可以分发组件中可复用逻辑。如果多个组件中有相同的业务逻辑，就可以将这些逻辑剥离出来，通过 mixins 混入代码。
+
+当组件和混入对象含有同名选项时，这些选项将以恰当的方式进行合并。
+
+- data 发生冲突时以当前组件数据优先；
+- 值为对象的选项，例如 methods、components 和 directives，将被合并为同一个对象。两个对象键名冲突时，取当前组件对象的键值对；
+- 同名钩子函数将合并为一个数组，因此都将被调用。混入对象的钩子将在组件自身钩子之前调用。
+
+1. 混入 beforeCreate
+2. 组件 beforeCreate
+3. 混入 created
+4. 组件 created
+5. 混入 beforeMount
+6. 组件 beforeMount
+7. 混入 mounted
+8. 组件 mounted

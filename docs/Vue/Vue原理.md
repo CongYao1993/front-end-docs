@@ -372,9 +372,10 @@ class initComputed {
       if (watcher) {
         // dirty 为 true，计算属性需要重新计算
         if (watcher.dirty) {
+          // 包含 pushTarget(this)，将该 computed watcher 添加到所依赖 data 值对应的 dep 中
           watcher.evaluate();
         }
-        // 收集依赖
+        // 收集依赖该 computed 属性的 DOM 元素等
         if (Dep.target) {
           watcher.depend();
         }
@@ -1178,5 +1179,7 @@ LRU（least recently used）缓存策略 ∶ 从内存中找出最久未使用�
   console.log(document.querySelector(".test-attr").getAttribute("data-v-27e4e96e") === ""); // true
 </script>
 ```
+
+参考文章：
 
 [Vue.js 源码分析](https://github.com/ustbhuangyi/vue-analysis)
