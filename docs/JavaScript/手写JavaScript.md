@@ -113,9 +113,7 @@ bind 函数就是柯里化函数的一种。
 function curry(func) {
   return function curriedFn(...args) {
     // 判断实参和形参的个数，其中func.length返回函数的形参个数
-    return args.length < func.length
-      ? (...args2) => curriedFn(...args, ...args2)
-      : func(...args);
+    return args.length < func.length ? (...args2) => curriedFn(...args, ...args2) : func(...args);
   };
 }
 ```
@@ -325,4 +323,36 @@ const obj = arr.myReduce((pre, cur) => {
 }, {});
 console.log(obj);
 // {/login: '/login.vue', /home: '/home.vue'}
+```
+
+### 3.5 Array.prototype.flat()
+
+flat() 方法是数组扁平化，根据指定深度递归地将所有子数组元素拼接到新的数组中，返回一个新数组。
+
+```javascript
+Array.prototype.myFlat = function (depth = 1) {
+  function flat(arr, depth) {
+    if (depth < 1) {
+      return arr;
+    }
+    const res = [];
+    const len = arr.length;
+    for (let i = 0; i < len; i++) {
+      const item = Array.isArray(arr[i]) ? flat(arr[i], depth - 1) : [arr[i]];
+      res.push(...item);
+    }
+    return res;
+  }
+  return flat(arr, depth);
+};
+```
+
+```javascript
+const arr = [0, 1, [2, [3, [4, 5]]]];
+
+console.log(arr.myFlat());
+// [0, 1, 2, [3, [4, 5]]]
+
+console.log(arr.myFlat(2));
+// [0, 1, 2, 3, [4, 5]]
 ```

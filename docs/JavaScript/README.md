@@ -3,6 +3,8 @@
 - JS 数据类型及数据类型的判断方式
 - 浮点数计算问题，0.1 + 0.2 为什么不等于 0.3 ？
 - 箭头函数和普通函数的区别
+- for...of 与 for...in 的区别
+- 如何获取对象自身的属性
 
 [执行上下文和作用域](./执行上下文和作用域.md)
 
@@ -47,3 +49,8 @@
 - 防抖和节流
 - 函数柯里化
 - 手写 Array.prototype.[forEach / map / filter / reduce]
+
+[TypeScript](./TypeScript.md)
+
+- 工具类函数相关问题：
+  - Omit 和 Pick 的作用

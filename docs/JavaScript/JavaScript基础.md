@@ -90,7 +90,27 @@ true.constructor === Boolean; // true
 new Person("hsg").constructor == Person; // true
 ```
 
-### 1.3 堆和栈的区别
+### 1.3 如何判断一个数据是否是数组类型
+
+`value instanceof Array`
+
+- 对于一个网页，或者一个全局作用域而言，使用 instanceof 操作符就能得到满意的结果。
+- 如果网页中包含多个框架，那实际上就存在两个以上不同的全局执行环境，从而存在两个以上不同版本的 Array 构造函数。如果你从一个框架向另一个框架传入一个数组，那么传入的数组与在第二个框架中原生创建的数组分别具有各自不同的构造函数，instanceof 就失效了。
+
+`Array.isArray(value)`
+
+- Array.isArray()方法，这个方法的目的是最终确定某个值到底是不是数组，而不管它是在哪个全局执行环境中创建的。
+
+```javascript
+// ES5 之前不支持此方法，做好兼容
+if (!Array.isArray) {
+  Array.isArray = function (arg) {
+    return Object.prototype.toString.call(arg) === "[object Array]";
+  };
+}
+```
+
+### 1.4 堆和栈的区别
 
 - 原始数据类型存储在栈（stack）中的简单数据段，占据空间小、大小固定，属于被频繁使用数据；
 - 引用数据类型存储在堆（heap）中的对象，占据空间大、大小不固定。引用数据类型在栈中存储了指针，该指针指向堆中该实体的起始地址。
@@ -118,3 +138,49 @@ JavaScript（以及所有现代编程语言）使用的 IEEE-754 浮点表示法
 - 箭头函数不能用于构造函数：不能使用 new 命令，也不具有 new.target 和 super
 - 不能使用 yield 关键字，因此箭头函数不能用作 Generator 函数
 - 不能简单返回对象字面量，如果要直接返回对象时需要用小括号包起来，因为大括号被占用解释为代码块了
+
+## 4. for...of 与 for...in 的区别
+
+for...in 和 for...of 语句都用于迭代某个内容，它们之间的主要区别在于迭代的对象。
+
+### 4.1 for...of
+
+`for...of` 循环按顺序逐个处理从`可迭代对象`获取的值。
+
+可迭代对象包括内置对象的实例，例如 Array、String、TypedArray、Map、Set、NodeList（以及其他 DOM 集合），还包括 arguments 对象、由生成器函数生成的生成器，以及用户定义的可迭代对象。
+
+1. 首先调用可迭代对象的 `[Symbol.iterator]()` 方法，该方法返回一个迭代器；
+2. 然后重复调用生成器的 `next()` 方法，以生成要分配给 variable 的值的序列；
+3. 在迭代器完成时退出 for...of 循环（即迭代器的 next() 方法返回一个包含 `done: true` 的对象）。
+
+```javascript
+const arr = [1, 2, 3];
+const it = arr[Symbol.iterator]();
+it.next(); // {value: 1, done: false}
+it.next(); // {value: 2, done: false}
+it.next(); // {value: 3, done: false}
+it.next(); // {value: undefined, done: true}
+```
+
+### 4.2 for...in
+
+`for...in` 语句用于迭代`对象的可枚举字符串属性`，包括继承的可枚举属性，不包括 Symbol 属性。
+
+遍历的顺序是一致且可预测的。在原型链的每个组件中，所有非负整数键（可以作为数组索引）将首先按值升序遍历，然后是其他字符串键按属性创建的先后顺序升序遍历。
+
+1. 首先获取当前对象的所有自有的字符串键，其方式与 Object.getOwnPropertyNames() 非常相似。
+2. 对于每一个键，如果没有访问过具有相同值的字符串，则获取属性描述符并只访问可枚举的属性。但是，即使该属性不可枚举，也会标记为已访问。
+3. 然后，当前对象被替换为其原型，并重复上述过程。
+
+### 4.3 获取对象本身的属性
+
+如果只想迭代对象本身的属性，而不是它的原型，可以使用以下技术之一：
+
+- `Object.keys()`：返回一个包含所有可枚举的自有字符串属性的数组。
+- `Object.getOwnPropertyNames()`：包含所有属性，包括不可枚举的。
+
+判断某个属性是不是对象自身的属性？
+
+`Object.hasOwn()`：如果指定的对象自身有指定的属性，返回 true。如果属性是继承的或者不存在，返回 false。
+
+建议使用此方法替代 `Object.prototype.hasOwnProperty()`，因为它适用于使用 Object.create(null) 创建的对象，以及重写了继承的 hasOwnProperty() 方法的对象。
