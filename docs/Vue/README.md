@@ -30,3 +30,7 @@
 - Vuex 执行流程
 - Vuex 原理
 - Vuex 为什么要区分 actions 和 mutations
+
+[Vue Router](./VueRouter.md)
+
+- 路由的 hash 和 history 模式
