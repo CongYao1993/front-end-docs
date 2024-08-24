@@ -433,6 +433,19 @@ module.exports = {
 
 `mode: 'developmemt'`默认开启了 js 压缩，通过 `terser-webpack-plugin` 插件压缩。
 
+当我们手动配置 optimization 选项之后，不再默认对 js 进行压缩，需要手动去配置。
+
+```javascript
+const TerserPlugin = require("terser-webpack-plugin");
+
+module.exports = {
+  optimization: {
+    minimize: true, // 开启最小化
+    minimizer: [new TerserPlugin({})],
+  },
+};
+```
+
 ## 6. 文件指纹
 
 webpack 文件指纹是在文件名后面加上 hash 值。
@@ -670,3 +683,177 @@ plugins: [
   new CleanWebpackPlugin(),
 ],
 ```
+
+## 10. 提高打包构建速度
+
+### 10.1 优化 resolve 配置
+
+- `alias`：配置别名。创建 import 或 require 的别名，简化模块引用
+- `extensions`：如果用户引入模块时不带扩展名，webpack 就会按照 extensions 配置的数组从左到右的顺序去尝试解析模块
+  - 高频文件后缀名放前面；
+  - 手动配置后，默认配置会被覆盖，如果想保留默认配置，可以用 ... 扩展运算符代表默认配置
+- `modules`：告诉 webpack 解析模块时应该搜索的目录，会大大节省查找时间
+- `resolveLoader`：查找 webpack 的  loader  包。一般情况下保持默认配置，但有自定义的 loader 就需要配置一下，可能会找不到 loader 而报错。
+
+```javascript
+const path = require("path");
+
+// 路径处理方法
+function resolve(dir) {
+  return path.join(__dirname, dir);
+}
+
+module.exports = {
+  resolve: {
+    // 配置别名
+    alias: {
+      "~": resolve("src"),
+      "@": resolve("src"),
+      components: resolve("src/components"),
+    },
+    // 配置后缀名
+    extensions: [".js", ".json"],
+    // extensions: ['.ts', '...'],
+    // 查找模块的路径，优先 src 目录下查找需要解析的文件
+    modules: [resolve("src"), "node_modules"],
+  },
+  resolveLoader: {
+    modules: ["node_modules", resolve("loader")],
+  },
+};
+```
+
+### 10.2 缩小范围
+
+配置 loader 时，通过 include 和 exclude 指定 loader 的作用目录或需要排除的目录，exclude 优先级更高。
+
+### 10.3
+
+配置不需要解析依赖的第三方大型类库等，提高构建速度。
+
+```javascript
+module.exports = {
+  module: {
+    noParse: /jquery|lodash/,
+    rules: [],
+  },
+};
+```
+
+### 10.4 多进程打包 thread-loader
+
+实际上在小型项目中，开启多进程打包反而会增加时间成本，因为启动进程和进程间通信都会有一定开销。
+
+thread-loader 使用时，需将此 loader 放置在其他 loader 之前。放置在此 loader 之后的 loader 会在一个独立的 worker 池中运行。
+
+每个 worker 都是一个独立的 node.js 进程，其开销大约为 600ms 左右。同时会限制跨进程的数据交换。
+
+请仅在耗时的操作中使用此 loader。
+
+```shell
+npm install --save-dev thread-loader
+```
+
+```javascript
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        include: path.resolve("src"),
+        use: [
+          "thread-loader",
+          // 耗时的 loader
+          "babel-loader",
+        ],
+      },
+    ],
+  },
+};
+```
+
+### 10.5 缓存
+
+利用缓存可以大幅提升重复构建的速度。
+
+#### 1）babel-loader 开启缓存
+
+babel 在转译 js 过程中时间开销比价大，将 babel-loader 的执行结果缓存起来，重新打包的时候，直接读取缓存。
+
+缓存位置：node_modules/.cache/babel-loader
+
+```javascript
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.js$/i,
+        use: [
+          {
+            loader: "babel-loader",
+            options: {
+              cacheDirectory: true, // 启用缓存
+            },
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+其它 loader 通过 cache 配置选项选项缓存。
+
+#### 2）cache
+
+缓存生成的 webpack 模块和 chunk，来改善构建速度。cache 会在开发 模式被设置成 `type: 'memory'` 而且在 生产 模式 中被禁用。
+
+```javascript
+module.exports = {
+  cache: {
+    type: "filesystem",
+  },
+};
+```
+
+## 11. 减小包体积
+
+### 11.1 webpack-bundle-analyzer
+
+直观地看到包组成和文件大小。
+
+```shell
+npm install --save-dev webpack-bundle-analyzer
+```
+
+```javascript
+const BundleAnalyzerPlugin = require("webpack-bundle-analyzer").BundleAnalyzerPlugin;
+
+const config = {
+  plugins: [
+    new BundleAnalyzerPlugin({
+      // analyzerMode: 'disabled',  // 不启动展示打包报告的 http 服务器
+      // generateStatsFile: true, // 是否生成 stats.json 文件
+    }),
+  ],
+};
+```
+
+### 11.2 压缩 html / CSS / JS
+
+- [压缩 html](#_2-2-html-文件压缩)
+- [压缩 CSS](#_3-3-压缩-css)
+- [压缩 JS](#_5-2-js-压缩)
+
+### 11.3 Tree-shaking
+
+- 利用 ES Module 可以进行静态分析的特点来检测模块内容的导出、导入以及被使用的情况，保留 Live Code
+- 消除不会被执行和没有副作用的 Dead Code，即 DCE 过程
+
+### 11.4 Scope Hoisting
+
+### 11.5 拆分为多页面应用
+
+### 11.6 splitChunks 分包
+
+### 11.7 动态路由
