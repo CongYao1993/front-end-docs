@@ -1,23 +1,24 @@
-<blockquote style="border-left: 5px solid #78c578; background-color: #f3f5f7; color: #2c3e50;">
-<p>Webpack 打包流程是怎样的？</p>
+::: tip 问题
+
+Webpack 打包流程是怎样的？<br>
 <br>
-<p>Loader 和 Plugin 有什么区别？</p>
-<p>Webpack 配置中用过哪些 Loader ？都有什么作用？</p>
-<p>Webpack 配置中用过哪些 Plugin ？都有什么作用？</p>
-<p>如何编写 Loader ? 介绍一下思路？</p>
-<p>如何编写 Plugin ? 介绍一下思路？</p>
+Loader 和 Plugin 有什么区别？<br>
+Webpack 配置中用过哪些 Loader ？都有什么作用？<br>
+Webpack 配置中用过哪些 Plugin ？都有什么作用？<br>
+如何编写 Loader ? 介绍一下思路？<br>
+如何编写 Plugin ? 介绍一下思路？<br>
 <br>
-<p>tree-shaking 实现原理是怎样的？</p>
-<p>热更新（HMR）是如何实现？</p>
-<p>Webpack 打包中 Babel 插件是如何工作的？</p>
+tree-shaking 实现原理是怎样的？<br>
+热更新（HMR）是如何实现？<br>
+Webpack 打包中 Babel 插件是如何工作的？<br>
 <br>
-<p>Webpack 和 Rollup 有什么相同点与不同点？</p>
+Webpack 和 Rollup 有什么相同点与不同点？<br>
 <br>
-<p>Webpack5 更新了哪些新特性？</p>
+Webpack5 更新了哪些新特性？<br>
 <br>
-<p>Webpack 层面如何性能优化？</p>
-<p>Webpack optimize 有配置过吗？可以简单说说吗？</p>
-</blockquote>
+Webpack 层面如何性能优化？<br>
+Webpack optimize 有配置过吗？可以简单说说吗？
+:::
 
 webpack 是一个 JavaScript 应用程序的 静态模块打包工具。当 webpack 处理应用程序时，它会从一个或多个入口构建一个依赖图，将项目中所需的每一个模块编译组合成一个或多个 bundles 输出。
 
