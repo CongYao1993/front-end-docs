@@ -241,3 +241,240 @@ const [value, setvalue] = useState("");
 
 <input type="text" value={value} onChange={(e) => setValue(e.target.value)} />;
 ```
+
+## 3. 组件通信
+
+### 3.1 父子组件-父传子 props
+
+每个父组件通过为子组件提供 props 来传递信息。
+
+- **props 可以传递任意的合法数据**，比如数字、字符串、布尔值、数组、对象、函数、JSX
+- **props 是只读对象**，子组件只能读取 props 中的数据，不能直接进行修改, 父组件的数据只能由父组件修改
+- `props.chilren`：当我们把 html 嵌套在组件的标签内部时，组件会自动在名为 children 的 props 属性中接收该内容
+
+```jsx
+function Son({ name, children }) {
+  return (
+    <>
+      <div>{name}</div>
+      {children}
+    </>
+  );
+}
+
+function App() {
+  const name = "this is app name";
+  return (
+    <>
+      <Son name={name}>
+        <div>我是嵌套模版</div>
+      </Son>
+    </>
+  );
+}
+```
+
+### 3.2 父子通信-子传父
+
+利用回调函数：父组件将一个函数作为 props 传递给子组件，子组件调用该回调函数，便可以向父组件通信。
+
+```jsx
+import { useState } from "react";
+
+function Son({ onGetMsg }) {
+  const msg = "this is son msg";
+  return (
+    <div>
+      {/* 在子组件中执行父组件传递过来的函数 */}
+      <button onClick={() => onGetMsg(msg)}>send</button>
+    </div>
+  );
+}
+
+function App() {
+  const [msg, setMsg] = useState("");
+  const getMsg = (msg) => setMsg(msg);
+
+  return (
+    <div>
+      {msg}
+      {/* 传递父组件中的函数到子组件 */}
+      <Son onGetMsg={getMsg} />
+    </div>
+  );
+}
+```
+
+### 3.3 兄弟组件通信
+
+兄弟组件通信，可以使用父组件作为中间层来传递数据。
+
+<img src="./images/react-data-flow.png" width="50%" />
+
+### 3.4 跨层级组件通信 useContext
+
+useContext 允许父组件向其下层无论多深的任何组件传递参数。
+
+通过 props 可以将信息从父组件传递到子组件。但是，如果某个状态在太高的层级，需要“逐层传递 props”，会变得很麻烦。
+
+<img src="./images/react-use-context.png" width="60%" />
+
+**实现步骤：**
+
+1. 使用 `createContext` 方法创建一个 context；
+2. 在需要数据的组件内通过 `useContext` **使用**刚刚创建的 context；
+3. 在指定数据的组件中通过 `Ctx.Provider` 组件**提供**这个 context。
+
+```jsx
+import { createContext, useContext } from "react";
+
+// 1. createContext方法创建一个上下文对象
+
+const MsgContext = createContext();
+
+function Com() {
+  return (
+    <div>
+      this is component
+      <SubCom />
+    </div>
+  );
+}
+
+function SubCom() {
+  // 2. 在深层组件，通过 useContext 钩子函数使用数据
+  const msg = useContext(MsgContext);
+  return <div>this is sub component, {msg}</div>;
+}
+
+function App() {
+  const msg = "this is app msg";
+  return (
+    <div>
+      {/* 3. 在上层组件，通过 Provider 组件提供数据 */}
+      <MsgContext.Provider value={msg}>
+        this is App
+        <Com />
+      </MsgContext.Provider>
+    </div>
+  );
+}
+```
+
+## 4. useReducer
+
+## 5. useRef
+
+### 5.1 使用 ref 操作 DOM
+
+useRef 可以用于获取指定 DOM。
+
+```jsx
+import { useRef } from "react";
+
+function App() {
+  const inputRef = useRef(null);
+  function handleClick() {
+    inputRef.current.focus();
+  }
+
+  return (
+    <>
+      <input ref={inputRef} />
+      <button onClick={handleClick}>聚焦输入框</button>
+    </>
+  );
+}
+```
+
+### 5.2 使用 ref 引用值
+
+## 6. useEffect
+
+useEffect 会在渲染后运行一些代码，以便可以将组件与 React 之外的某些系统同步，比如浏览器 API、第三方小部件、网络等。
+
+```javascript
+useEffect(() => {
+  // 副作用逻辑
+  return () => {
+    // 清除副作用
+    // 通常在组件卸载时自动执行
+  };
+}, []);
+```
+
+- 参数 1 是一个函数，在函数内部可以放置要执行的操作
+  - 该函数可以返回一个函数，用于清除副作用，通常在组件卸载时自动执行
+- 参数 2 是一个数组，是可选的
+  - 如果没有参数 2，每次渲染后都会执行该函数
+  - 当是一个空数组时，函数只会在组件渲染完毕之后执行一次
+  - 添加特定依赖项时，在组件初始渲染和依赖项变化时执行
+
+```jsx
+import { useEffect, useState } from "react";
+
+function Son() {
+  // 渲染后开启一个定时器
+  useEffect(() => {
+    const timer = setInterval(() => {
+      console.log("定时器执行中...");
+    }, 1000);
+
+    return () => {
+      // 清除副作用
+      clearInterval(timer);
+    };
+  }, []);
+  return <div>this is son</div>;
+}
+
+function App() {
+  // 通过条件渲染模拟组件卸载
+  const [show, setShow] = useState(true);
+  return (
+    <div>
+      {show && <Son />}
+      <button onClick={() => setShow(!show)}>{show ? "卸载组件" : "挂载组件"}</button>
+    </div>
+  );
+}
+```
+
+## 7. 自定义 Hook
+
+React 有一些内置 Hook，例如 useState，useContext 和 useEffect，有时我们需要自定义 Hook。
+
+自定义 Hook 是以 `use 开头的函数`，可以`实现逻辑的封装和复用`。
+
+1. 声明一个以 use 打头的函数
+2. 在函数体内封装可复用的逻辑
+3. 把组件中用到的状态或者回调 return 出去（以对象或者数组）
+4. 某个组件中要用到这个逻辑，就执行这个函数，解构出来状态和回调进行使用
+
+```jsx
+import { useState } from "react";
+
+function useToggle() {
+  const [value, setValue] = useState(true);
+
+  const toggle = () => setValue(!value);
+
+  return {
+    value,
+    toggle,
+  };
+}
+
+function App() {
+  const { value, toggle } = useToggle();
+  return (
+    <div>
+      {value && <div>this is div</div>}
+      <button onClick={toggle}>toggle</button>
+    </div>
+  );
+}
+```
+
+- 只能在组件中或者其他自定义 Hook 函数中调用
+- 只能在组件的顶层调用，不能嵌套在 if、for、其它的函数中
