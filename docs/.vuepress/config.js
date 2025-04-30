@@ -4,8 +4,8 @@ import { defineUserConfig } from "vuepress";
 import { resolve } from "node:path";
 import { readdirSync } from "node:fs";
 
-function interviewSidebar() {
-  const path = resolve(__dirname, "../interview");
+function sidebar(route) {
+  const path = resolve(__dirname, `..${route}`);
   const dirs = readdirSync(path, { withFileTypes: true });
   return dirs
     .filter((dir) => dir.isDirectory())
@@ -21,22 +21,9 @@ function interviewSidebar() {
         });
       return {
         text: dir.name,
-        link: `/interview/${dir.name}/README.md`,
-        prefix: `/interview/${dir.name}/`,
+        link: `${route}${dir.name}/README.md`,
+        prefix: `${route}${dir.name}/`,
         children,
-      };
-    });
-}
-
-function tutorialSidebar() {
-  const path = resolve(__dirname, "../tutorial");
-  return readdirSync(path)
-    .filter((item) => item.endsWith(".md") && item !== "README.md")
-    .map((item) => {
-      return {
-        text: item.split(".md")[0],
-        link: `/tutorial/${item}`,
-        prefix: `/tutorial/`,
       };
     });
 }
@@ -67,8 +54,8 @@ export default defineUserConfig({
       },
     ],
     sidebar: {
-      "/interview/": interviewSidebar(),
-      "/tutorial/": tutorialSidebar(),
+      "/interview/": sidebar("/interview/"),
+      "/tutorial/": sidebar("/tutorial/"),
     },
   }),
   bundler: viteBundler(),
