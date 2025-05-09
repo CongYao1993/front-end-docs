@@ -1,5 +1,4 @@
-[React 官方文档](https://react.docschina.org/learn)  
-[React 生态](https://github.com/enaqx/awesome-react)
+# React
 
 React，用于构建 Web 和原生交互界面的库。
 
@@ -13,7 +12,7 @@ JavaScript XML（JSX）是 JavaScript 语法扩展，使用 XML 标记的方式�
 - HTML 的声明式模版写法
 - JS 的可编程能力
 
-JSX 不是标准的 JavaScript 语法，它是 JavaScript 的语法扩展，浏览器本身不能识别，需要通过解析工具做解析之后才能在浏览器中运行。
+虽然 JSX 看起来像是 HTML，但实际上它是 JavaScript 代码。当我们编写 JSX 时，Babel 这样的编译器会将其转换为普通的 JavaScript 代码（虚拟 DOM），React 在运行时将其渲染为实际的 DOM 元素。
 
 ```javascript
 const message = 'World'
@@ -50,6 +49,8 @@ export default function HelloWorld() {
 
 在 JSX 中可以使用 `Array.prototype.map()` 实现列表渲染。
 
+注意：对于列表中的每一个元素，应该传递一个唯一的 key，用于在其兄弟节点中唯一标识该元素。如果后续插入、删除或重新排序列表元素，React 将依靠提供的 key 来进行操作。
+
 ```jsx
 const list = [
   { id: 1001, name: "Vue" },
@@ -70,8 +71,8 @@ function App() {
 
 ### 1.2 条件渲染
 
-- 可以通过运算符 && 或三元表达式实现基础的条件渲染；
-- 可以通过「自定义函数 + 判断语句」实现条件渲染
+- 可以通过运算符`&&`或`三元表达式`实现基础的条件渲染；
+- 可以通过`自定义函数 + 判断语句`实现条件渲染
 
 ```jsx
 const flag = true;
@@ -141,21 +142,42 @@ import "./index.css";
 classnames 是一个 JS 库，通过条件动态控制 class 类名，解决了通过字符串拼接动态设置类名不够直观、容易出错的问题。
 
 ```jsx
-// className = {'foo bar'}
-<div className={classNames("foo", { bar: true })}></div>
+import classNames from "classnames";
+
+/* 相当于 className = {'foo bar'} */
+<div className={classNames("foo", { bar: true })}></div>;
+
+/* 动态类名 */
+let buttonType = "primary";
+classNames({ [`btn-${buttonType}`]: true });
+```
+
+在 `css-modules` 中使用 `classnames/bind`。
+
+```jsx
+import styles from "./button.module.scss";
+
+const cx = classNames.bind(styles);
+
+export default function SubmitButton({ store, form }) {
+  const [valid, setValid] = useState(form.valid);
+
+  return <button className={cx("base", { disabled: valid })}>按钮</button>;
+}
 ```
 
 ### 1.4 事件绑定
 
 事件绑定通过 `on + 事件名称 = { 事件处理程序 }`，整体上遵循驼峰命名法。
 
-传递给事件处理函数的函数应直接传递，而非调用。如果需要给事件处理函数传参，需要使用回调函数。
+不要**调用**事件处理函数，你只需**把函数传递给事件**即可。如果需要给事件处理函数传参，需要使用回调函数。当用户点击按钮时 React 会调用你传递的事件处理函数。
 
 ```jsx
 function App() {
   const clickHandler = (name, e) => {
     console.log("button按钮点击了", name, e);
   };
+
   return (
     <button onClick={(e) => clickHandler("jack", e)}>click me</button>
     { /* 如果不用传参，可以直接写函数名称 */ }
