@@ -2,11 +2,12 @@
 
 React，用于构建 Web 和原生交互界面的库。
 
-创建 React 项目：[create-react-app](https://create-react-app.bootcss.com/docs/getting-started) [React 官方安装文档](https://react.docschina.org/learn/installation)
+创建 React 项目：[React 官方安装文档](https://zh-hans.react.dev/learn/installation) [create-react-app（已过期）](https://create-react-app.dev/)
 
 ## 1. JSX
 
 JavaScript XML（JSX）是 JavaScript 语法扩展，使用 XML 标记的方式直接声明界面，可以让你在 JavaScript 文件中书写类似 HTML 的标签。
+
 优势：
 
 - HTML 的声明式模版写法
@@ -135,7 +136,7 @@ import "./index.css";
 <h1 style={{ fontSize: 20, color: "red" }}>Hello World!</h1>
 ```
 
-#### 3）classNames 库
+#### 3）classnames 库
 
 [classnames](https://github.com/JedWatson/classnames)
 
@@ -200,6 +201,7 @@ import { useState } from "react";
 
 function App() {
   const [count, setCount] = useState(0);
+
   return (
     <div>
       <button onClick={() => setCount(count + 1)}>{count}</button>
@@ -209,7 +211,7 @@ function App() {
 ```
 
 - 设置 state 会触发重新渲染。
-- 当你调用 useState 时，React 会为你提供该次渲染 的一张 state 快照。
+- 当你调用 useState 时，React 会为你提供该次渲染的一张 state 快照。
 - 在 React 中，状态被认为是只读的，应该始终替换它而不是修改它，直接修改状态不能引发视图更新。
 
 ### 2.1 更新 state 中的对象
@@ -250,6 +252,7 @@ const nextCounters = counters.map((c, i) => {
     return c;
   }
 });
+
 setCounters(nextCounters);
 ```
 
@@ -286,6 +289,7 @@ function Son({ name, children }) {
 
 function App() {
   const name = "this is app name";
+
   return (
     <>
       <Son name={name}>
@@ -305,6 +309,7 @@ import { useState } from "react";
 
 function Son({ onGetMsg }) {
   const msg = "this is son msg";
+
   return (
     <div>
       {/* 在子组件中执行父组件传递过来的函数 */}
@@ -315,6 +320,7 @@ function Son({ onGetMsg }) {
 
 function App() {
   const [msg, setMsg] = useState("");
+
   const getMsg = (msg) => setMsg(msg);
 
   return (
@@ -366,11 +372,13 @@ function Com() {
 function SubCom() {
   // 2. 在深层组件，通过 useContext 钩子函数使用数据
   const msg = useContext(MsgContext);
+
   return <div>this is sub component, {msg}</div>;
 }
 
 function App() {
   const msg = "this is app msg";
+
   return (
     <div>
       {/* 3. 在上层组件，通过 Provider 组件提供数据 */}
@@ -396,6 +404,7 @@ import { useRef } from "react";
 
 function App() {
   const inputRef = useRef(null);
+
   function handleClick() {
     inputRef.current.focus();
   }
@@ -447,12 +456,14 @@ function Son() {
       clearInterval(timer);
     };
   }, []);
+
   return <div>this is son</div>;
 }
 
 function App() {
   // 通过条件渲染模拟组件卸载
   const [show, setShow] = useState(true);
+
   return (
     <div>
       {show && <Son />}
@@ -489,6 +500,7 @@ function useToggle() {
 
 function App() {
   const { value, toggle } = useToggle();
+
   return (
     <div>
       {value && <div>this is div</div>}
