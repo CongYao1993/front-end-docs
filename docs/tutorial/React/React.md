@@ -4,9 +4,19 @@ React，用于构建 Web 和原生交互界面的库。
 
 创建 React 项目：[React 官方安装文档](https://zh-hans.react.dev/learn/installation) [create-react-app（已过期）](https://create-react-app.dev/)
 
-## 1. JSX
+## 1. React 的特点
+
+1. **组件化：** React 将独立的、可重用的 UI 及其自身的逻辑拆分为组件，使得代码更易于管理和维护。
+2. **声明式编程：** React 采用声明式的编程风格，开发者只需描述 UI 和修改数据，而不需要手动操作 DOM。React 会根据数据的变化自动更新 DOM。
+3. **虚拟 DOM：** React 使用虚拟 DOM 来优化 UI 的更新过程。当数据发生变化时，React 会创建一个新的虚拟 DOM，然后将其与之前的虚拟 DOM 进行比较，找出最小的变化，并将这些变化应用到实际的 DOM 中，从而提高性能。
+4. **单向数据流：** React 采用单向数据流，在组件之间通过 props 传递数据，使得数据的流动更加清晰和可预测。
+5. **生态系统：** React 有一个庞大且活跃的社区，提供了大量的第三方库和工具，帮助开发者构建复杂的应用。
+
+## 2. JSX
 
 JavaScript XML（JSX）是 JavaScript 语法扩展，使用 XML 标记的方式直接声明界面，可以让你在 JavaScript 文件中书写类似 HTML 的标签。
+
+TSX 和 JSX 基本没有区别，只是在 JSX 语法上增加了类型。
 
 优势：
 
@@ -46,7 +56,25 @@ export default function HelloWorld() {
 - **使用大括号 {} 编写 JavaScript 表达式**，比如字符串、变量、函数调用、三元运算符等。if 语句、switch 语句、变量声明不属于表达式，不能出现在 {} 中。
 - 推荐使用 `/**/` 注释。
 
-### 1.1 列表渲染
+```jsx
+const str = "22";
+const num = 33;
+const fn = () => "test";
+
+function App() {
+  return (
+    <>
+      {"11" /** 字符串用法 */}
+      {`${str}`}
+      {num /** 变量用法 */}
+      {fn() /** 函数用法 */}
+      {new Date().getTime() /** 日期用法 */}
+    </>
+  );
+}
+```
+
+### 2.1 列表渲染
 
 在 JSX 中可以使用 `Array.prototype.map()` 实现列表渲染。
 
@@ -70,7 +98,7 @@ function App() {
 }
 ```
 
-### 1.2 条件渲染
+### 2.2 条件渲染
 
 - 可以通过运算符`&&`或`三元表达式`实现基础的条件渲染；
 - 可以通过`自定义函数 + 判断语句`实现条件渲染
@@ -107,7 +135,7 @@ function App() {
 }
 ```
 
-### 1.3 CSS
+### 2.3 CSS
 
 #### 1）className
 
@@ -128,6 +156,13 @@ import "./index.css";
     font-size: 40px;
   }
 </style> */
+```
+
+```jsx
+// 动态绑定 class
+const classStr = "class1";
+
+<div className={`${classStr} class2`}>test</div>;
 ```
 
 #### 2）行内样式
@@ -167,7 +202,7 @@ export default function SubmitButton({ store, form }) {
 }
 ```
 
-### 1.4 事件绑定
+### 2.4 事件绑定
 
 事件绑定通过 `on + 事件名称 = { 事件处理程序 }`，整体上遵循驼峰命名法。
 
@@ -187,14 +222,54 @@ function App() {
 }
 ```
 
-## 2. useState
+### 2.5 渲染 html 片段
+
+在 JSX 中渲染 html 片段，需要使用 dangerouslySetInnerHTML。
+
+```jsx
+const value = '<span style="color:red">内容</span>';
+
+<div dangerouslySetInnerHTML={{ __html: value }}></div>;
+```
+
+### 2.6 使用泛型
+
+TSX 会把泛型语法理解为一个 html 元素，在后面添加一个 , 即可解决。
+
+```tsx
+const clickTap = <T,>(params: T) => console.log(params);
+
+<div onClick={() => clickTap("test")}>test</div>;
+```
+
+## 3. useState
 
 useState Hook 让你声明一个状态变量，状态变量一旦发生变化，组件的视图 UI 也会跟着变化（数据驱动视图）。
 
-它接收初始状态并返回一对值：当前状态，以及一个让你更新状态的设置函数。
+`useState(initialState)`
 
-- `State 变量`：用于保存上次渲染的值；
-- `State setter 函数`：更新 state 变量并触发 React 重新渲染组件。
+参数 `initialState`：state 初始化的值。初始渲染后，该参数将被忽略。
+
+- 初始值可以是任何类型，但是如果是函数类型，应该是**纯函数**，并且应该有返回值。
+- useState 是一个 Hook，**只能在组件的顶层调用**，不能在循环或条件语句中调用。
+- 当你调用 useState 时，React 会为你提供该次渲染的一张 state 快照。
+- 在开发环境的严格模式中，React 将**两次调用**初始化函数，以找到意外的不纯性。其中一个调用的结果将被忽略。
+
+返回一个由两个值组成的数组。
+
+- `state 变量`：当前 state；
+- `set 函数`：更新 state 变量并触发 React 重新渲染组件。
+  - 可以直接设置新状态，也可以传递一个函数 `setAge(prev => prev + 1)`。
+  - 如果传递函数，它将被视为**更新函数**。
+    - 该函数必须为纯函数，参数为前一次状态，并返回下一个状态。
+    - React 将把更新函数放入队列中并重新渲染组件。在下一次渲染期间，依次执行所有更新函数，前一个函数的返回值作为下一个函数的参数。
+  - 在 React 中，**状态被认为是只读的**，应该始终替换它而不是修改它，直接修改状态不能引发视图更新。
+  - 更新时机：
+    - set 函数更新 state 变量是异步的，如果在调用 set 函数后立即读取状态变量，则会得到旧值。
+    - React 会批量处理状态更新。它会在所有事件处理函数运行并调用其 set 函数后更新屏幕。这可以防止在单个事件期间多次重新渲染。
+    - 如果新值与旧值相同（由 Object.is 比较确定），React 将不会重新渲染该组件及其子组件。
+  - set 函数是 **稳定的**，可以在 Effect 的依赖数组中省略它，即使包含它也不会导致 Effect 重新触发。
+  - 在开发环境的严格模式中，React 将**两次调用** set 函数，以找到意外的不纯性。其中一个调用的结果将被忽略。
 
 ```jsx
 import { useState } from "react";
@@ -210,11 +285,7 @@ function App() {
 }
 ```
 
-- 设置 state 会触发重新渲染。
-- 当你调用 useState 时，React 会为你提供该次渲染的一张 state 快照。
-- 在 React 中，状态被认为是只读的，应该始终替换它而不是修改它，直接修改状态不能引发视图更新。
-
-### 2.1 更新 state 中的对象
+### 3.1 更新 state 中的对象
 
 - 把所有存放在 state 中的 JavaScript 对象都视为只读的。
 - 对于对象类型的状态变量，应该始终传给 set 方法一个全新的对象来进行修改。
@@ -231,7 +302,7 @@ setPerson({
 });
 ```
 
-### 2.2 更新 state 中的数组
+### 3.2 更新 state 中的数组
 
 |          | 避免使用 (会改变原始数组) | 推荐使用 (会返回一个新数组） |
 | -------- | ------------------------- | ---------------------------- |
@@ -256,7 +327,7 @@ const nextCounters = counters.map((c, i) => {
 setCounters(nextCounters);
 ```
 
-### 2.3 双向数据绑定
+### 3.3 双向数据绑定
 
 - 将 state 绑定到 input 的 value 属性
 - 把 input 最新的 value 值设置给 state
@@ -267,9 +338,32 @@ const [value, setvalue] = useState("");
 <input type="text" value={value} onChange={(e) => setValue(e.target.value)} />;
 ```
 
-## 3. 组件通信
+### 3.4 根据先前的 state 更新 state
 
-### 3.1 父子组件-父传子 props
+```javascript
+function handleClick() {
+  setAge(age + 1); // setAge(18 + 1)
+  setAge(age + 1); // setAge(18 + 1)
+  setAge(age + 1); // setAge(18 + 1)
+  // 点击一次后，age 只会变为 19
+}
+```
+
+可以向 set 函数传递一个更新函数。
+
+按照惯例，通常将前一个状态参数命名为状态变量名称的第一个字母，如 age 为 a。也可以把它命名为 prevAge 或者其它更有明确含义的名称。
+
+```javascript
+function handleClick() {
+  setAge((a) => a + 1); // setAge(18 => 19)
+  setAge((a) => a + 1); // setAge(19 => 20)
+  setAge((a) => a + 1); // setAge(20 => 21)
+}
+```
+
+## 4. 组件通信
+
+### 4.1 父子组件-父传子 props
 
 每个父组件通过为子组件提供 props 来传递信息。
 
@@ -300,7 +394,7 @@ function App() {
 }
 ```
 
-### 3.2 父子通信-子传父
+### 4.2 父子通信-子传父
 
 利用回调函数：父组件将一个函数作为 props 传递给子组件，子组件调用该回调函数，便可以向父组件通信。
 
@@ -333,13 +427,13 @@ function App() {
 }
 ```
 
-### 3.3 兄弟组件通信
+### 4.3 兄弟组件通信
 
 兄弟组件通信，可以使用父组件作为中间层来传递数据。
 
 <img src="./images/react-data-flow.png" width="50%" />
 
-### 3.4 跨层级组件通信 useContext
+### 4.4 跨层级组件通信 useContext
 
 useContext 允许父组件向其下层无论多深的任何组件传递参数。
 
@@ -391,9 +485,9 @@ function App() {
 }
 ```
 
-## 4. useReducer
+## 5. useReducer
 
-## 5. useRef
+## 6. useRef
 
 ### 5.1 使用 ref 操作 DOM
 
